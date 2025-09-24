@@ -11,3 +11,11 @@
   --color-background: #ffffff;     /* White */
   --color-text: #1e293b;           /* Dark Slate Gray */
 }
+/* Add to your src/index.css or App.css */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.floating { 
+  animation: float 3s ease-in-out infinite; 
+}

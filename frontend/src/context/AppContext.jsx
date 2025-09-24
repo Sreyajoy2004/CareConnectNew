@@ -9,8 +9,8 @@ export const AppContextProvider = ({ children }) => {
   const navigate = useNavigate();
 
   // Global states
-  const [user, setUser] = useState({name:"sreya"}); // will store {id, name, email, role}
-  const [role, setRole] = useState("careprovider"); // "careseeker" | "careprovider" | "admin"
+  const [user, setUser] = useState(null); // will store {id, name, email, role}
+  const [role, setRole] = useState(null); // "careseeker" | "careprovider" | "admin"
   const [bookings, setBookings] = useState([]); // active user’s bookings
   const [reviews, setReviews] = useState([]); // reviews by/for user
   const [loading, setLoading] = useState(false); // global loading spinner
