@@ -1,27 +1,25 @@
+// src/components/Hero.jsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { assets } from '../assets/assets';
 
-const Hero = ({ onFindCaregivers }) => {
-  const { navigate, user } = useAppContext();
+const Hero = () => {
+  const navigate = useNavigate();
+  const { user } = useAppContext();
 
   const handleFindCaregivers = () => {
     if (user) {
-      // User is logged in - go to caregiver search/listings
       navigate('/caregivers');
     } else {
-      // User not logged in - go to registration as CareSeeker
       navigate('/register?role=careseeker');
     }
   };
 
   const handleBecomeCaregiver = () => {
     if (user) {
-      // User is logged in - check if they're already a provider
-      // For now, go to provider application
       navigate('/become-provider');
     } else {
-      // User not logged in - go to registration as CareProvider
       navigate('/register?role=careprovider');
     }
   };
@@ -75,7 +73,7 @@ const Hero = ({ onFindCaregivers }) => {
                   <span className="text-green-400 text-xl">✓</span>
                 </div>
                 <div>
-                  <div className="text-blue-200 font-semibold"> Verified Caregivers</div>
+                  <div className="text-blue-200 font-semibold">Verified Caregivers</div>
                 </div>
               </div>
               

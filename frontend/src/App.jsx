@@ -1,12 +1,23 @@
+// src/App.jsx
 import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AppContextProvider } from './context/AppContext'
 import Navbar from './components/Navbar'
-import Hero from './components/Hero'
+import Home from './pages/Home'
+
 const App = () => {
   return (
-    <div>
-      <Navbar/>
-      <Hero/>
-    </div>
+    <BrowserRouter>
+      <AppContextProvider>
+        <div className="min-h-screen">
+          <Navbar/>
+          <Routes>
+            <Route path="/" element={<Home/>}/>
+            {/* Add other routes here */}
+          </Routes>
+        </div>
+      </AppContextProvider>
+    </BrowserRouter>
   )
 }
 

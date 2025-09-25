@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { useAppContext } from "../context/AppContext";
 
@@ -12,7 +12,8 @@ const Navbar = () => {
   const servicesRef = React.useRef(null);
   const profileRef = React.useRef(null);
 
-  const { user, role, logout, navigate } = useAppContext();
+  const { user, role, logout } = useAppContext();
+  const navigate = useNavigate();
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
@@ -28,6 +29,31 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleDocClick);
   }, []);
 
+  // Smooth scroll to about section
+  const scrollToAbout = () => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    
+    // If we're not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        const element = document.getElementById('about');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Already on home page, just scroll
+      const element = document.getElementById('about');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
   // helper to close menus when navigating
   const navAndClose = (path) => {
     setOpen(false);
@@ -41,6 +67,7 @@ const Navbar = () => {
     setServicesOpen(false);
     setProfileOpen(false);
     logout();
+    navigate("/");
   };
 
   return (
@@ -57,7 +84,14 @@ const Navbar = () => {
       {/* Desktop Menu */}
       <div className="hidden sm:flex items-center gap-10 font-medium">
         <NavLink to="/" className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200">Home</NavLink>
-        <NavLink to="/about" className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200">About</NavLink>
+        
+        {/* About - Updated to use smooth scroll */}
+        <button 
+          onClick={scrollToAbout}
+          className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200"
+        >
+          About
+        </button>
 
         {/* Services dropdown: supports click + hover */}
         <div
@@ -173,7 +207,15 @@ const Navbar = () => {
       {open && (
         <div className="absolute top-[70px] left-0 w-full bg-white shadow-xl border-t border-gray-200 py-6 flex flex-col items-start gap-4 px-6 text-base sm:hidden z-50">
           <NavLink to="/" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Home</NavLink>
-          <NavLink to="/about" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">About</NavLink>
+          
+          {/* Mobile About - Updated to use smooth scroll */}
+          <button 
+            onClick={scrollToAbout}
+            className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+          >
+            About
+          </button>
+          
           <NavLink to="/childcare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Childcare</NavLink>
           <NavLink to="/elderlycare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Elderly Care</NavLink>
           <NavLink to="/contact" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Contact</NavLink>

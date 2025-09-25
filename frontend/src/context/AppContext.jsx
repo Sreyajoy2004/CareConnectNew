@@ -1,38 +1,35 @@
+// src/context/AppContext.jsx
 import { createContext, useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 // 1. Create context
 export const AppContext = createContext();
 
 // 2. Provider component
 export const AppContextProvider = ({ children }) => {
-  const navigate = useNavigate();
-
   // Global states
-  const [user, setUser] = useState(null); // will store {id, name, email, role}
-  const [role, setRole] = useState(null); // "careseeker" | "careprovider" | "admin"
-  const [bookings, setBookings] = useState([]); // active user’s bookings
-  const [reviews, setReviews] = useState([]); // reviews by/for user
-  const [loading, setLoading] = useState(false); // global loading spinner
+  const [user, setUser] = useState({name:"sreya"});
+  const [role, setRole] = useState("careprovider");
+  const [bookings, setBookings] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Example: login function
+  // Login function without navigation
   const login = (userData) => {
     setUser(userData);
     setRole(userData.role);
-    navigate("/"); // go to home after login
+    // Navigation will be handled in components
   };
 
-  // Example: logout function
+  // Logout function without navigation
   const logout = () => {
     setUser(null);
     setRole(null);
     setBookings([]);
     setReviews([]);
-    navigate("/login");
+    // Navigation will be handled in components
   };
 
   const value = {
-    navigate,
     user,
     setUser,
     role,

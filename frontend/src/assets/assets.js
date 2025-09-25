@@ -7,4 +7,5 @@ export const assets = {
   profile_icon,
   menu_icon,
   banner1,
+  logotitle,
 };
