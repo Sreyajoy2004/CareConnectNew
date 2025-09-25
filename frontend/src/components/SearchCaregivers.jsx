@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import CaregiverCard from './CaregiverCard';
-import { assets } from '../assets/assets'; // ADD THIS IMPORT
+import { assets } from '../assets/assets';
 
 const SearchCaregivers = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const SearchCaregivers = () => {
     maxRate: ''
   });
 
-  // Enhanced caregiver data - FIXED assets reference
+  // Enhanced caregiver data
   const caregivers = [
     {
       id: 1,
@@ -29,7 +29,7 @@ const SearchCaregivers = () => {
       experience: "5 years experience",
       location: "Downtown, NY",
       availability: "Full-time",
-      image: assets.profile_icon, // FIXED: assets is now imported
+      image: assets.profile_icon,
       verified: true
     },
     {
@@ -43,7 +43,7 @@ const SearchCaregivers = () => {
       experience: "8 years experience",
       location: "North District, CHI",
       availability: "Part-time",
-      image: assets.profile_icon, // FIXED
+      image: assets.profile_icon,
       verified: true
     },
     {
@@ -57,7 +57,7 @@ const SearchCaregivers = () => {
       experience: "6 years experience", 
       location: "East Side, BOS",
       availability: "Full-time",
-      image: assets.profile_icon, // FIXED
+      image: assets.profile_icon,
       verified: false
     },
     {
@@ -71,7 +71,7 @@ const SearchCaregivers = () => {
       experience: "10 years experience",
       location: "West End, SEA",
       availability: "Full-time",
-      image: assets.profile_icon, // FIXED
+      image: assets.profile_icon,
       verified: true
     }
   ];
@@ -84,7 +84,7 @@ const SearchCaregivers = () => {
 
   const filteredCaregivers = useMemo(() => {
     const hasActiveFilters = filters.careType || filters.specialization || filters.location || filters.maxRate;
-    if (!hasActiveFilters) return [];
+    if (!hasActiveFilters) return caregivers; // Show all caregivers when no filters
 
     return caregivers.filter(caregiver => {
       const matchesCareType = !filters.careType || caregiver.careType === filters.careType;
@@ -116,13 +116,13 @@ const SearchCaregivers = () => {
   // Non-user view
   if (!user) {
     return (
-      <section id="search-caregivers" className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+      <section id="search-caregivers" className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-4xl mx-auto">
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+            <h2 className="text-5xl font-bold text-white mb-6">
               Meet Our Caregivers
             </h2>
-            <p className="text-xl text-gray-600 mb-12">
+            <p className="text-xl text-blue-200 mb-12">
               Browse through our verified caregivers and find the perfect match
             </p>
 
@@ -134,10 +134,10 @@ const SearchCaregivers = () => {
             </div>
             
             <button
-              onClick={() => navigate('/register?role=careseeker')}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 rounded-full font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl"
+              onClick={() => navigate('/login', { state: { from: '/caregivers' } })}
+              className="bg-white text-blue-900 hover:bg-blue-50 px-12 py-4 rounded-full font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-xl"
             >
-              Sign Up to View All Profiles
+              Login to View All Profiles
             </button>
           </div>
         </div>
@@ -147,71 +147,71 @@ const SearchCaregivers = () => {
 
   // Logged-in user view
   return (
-    <section id="search-caregivers" className="py-20 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+    <section id="search-caregivers" className="py-20 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 min-h-screen">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <h2 className="text-5xl font-bold text-white mb-4">
             Find Your Perfect Caregiver
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-blue-200">
             Use filters to narrow down your search
           </p>
         </div>
 
         {/* Premium Filter Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-12 max-w-4xl mx-auto border border-white/20">
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-12 max-w-4xl mx-auto border border-white/20">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             {/* Care Type */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Care Type</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Care Type</label>
               <select 
                 value={filters.careType}
                 onChange={(e) => handleFilterChange('careType', e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
+                className="w-full border border-white/30 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/10 text-white"
               >
-                <option value="">Select Type</option>
-                <option value="Childcare">Childcare</option>
-                <option value="Elderly Care">Elderly Care</option>
+                <option value="" className="text-gray-700">Select Type</option>
+                <option value="Childcare" className="text-gray-700">Childcare</option>
+                <option value="Elderly Care" className="text-gray-700">Elderly Care</option>
               </select>
             </div>
 
             {/* Specialization */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Specialization</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Specialization</label>
               <select 
                 value={filters.specialization}
                 onChange={(e) => handleFilterChange('specialization', e.target.value)}
                 disabled={!filters.careType}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 disabled:bg-gray-100"
+                className="w-full border border-white/30 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/10 text-white disabled:bg-white/5"
               >
-                <option value="">All Specialties</option>
+                <option value="" className="text-gray-700">All Specialties</option>
                 {specializationOptions[filters.careType]?.map(option => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option} className="text-gray-700">{option}</option>
                 ))}
               </select>
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Location</label>
               <input 
                 type="text"
                 placeholder="City or area..."
                 value={filters.location}
                 onChange={(e) => handleFilterChange('location', e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
+                className="w-full border border-white/30 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/10 text-white placeholder-blue-200"
               />
             </div>
 
             {/* Max Rate */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Max Rate</label>
+              <label className="block text-sm font-semibold text-blue-200 mb-2">Max Rate</label>
               <input 
                 type="number"
                 placeholder="$ per hour"
                 value={filters.maxRate}
                 onChange={(e) => handleFilterChange('maxRate', e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
+                className="w-full border border-white/30 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/10 text-white placeholder-blue-200"
               />
             </div>
           </div>
@@ -219,7 +219,7 @@ const SearchCaregivers = () => {
           <div className="flex gap-4 justify-center">
             <button 
               onClick={clearFilters}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-white/30 text-white rounded-xl hover:bg-white/10 transition-colors"
             >
               Clear Filters
             </button>
@@ -229,10 +229,10 @@ const SearchCaregivers = () => {
         {/* Results Section */}
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-white">
               {filteredCaregivers.length > 0 
                 ? `Found ${filteredCaregivers.length} caregivers` 
-                : 'Apply filters to see results'
+                : 'Browse our caregivers'
               }
             </h3>
           </div>
@@ -245,15 +245,11 @@ const SearchCaregivers = () => {
             </div>
           ) : (
             <div className="text-center py-20">
-              <div className="text-8xl mb-6">🔍</div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                {filters.careType || filters.location ? 'No matches found' : 'Start your search'}
+              <h3 className="text-3xl font-bold text-white mb-4">
+                No caregivers match your current filters
               </h3>
-              <p className="text-gray-600 text-lg">
-                {filters.careType || filters.location 
-                  ? 'Try adjusting your filters' 
-                  : 'Use the filters above to find caregivers'
-                }
+              <p className="text-blue-200 text-lg">
+                Adjust your filters to see more results
               </p>
             </div>
           )}

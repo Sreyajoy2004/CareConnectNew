@@ -4,17 +4,21 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppContextProvider } from './context/AppContext'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
+import Login from './pages/Login'
 
 const App = () => {
   return (
     <BrowserRouter>
       <AppContextProvider>
-        <div className="min-h-screen">
+        <div className="min-h-screen flex flex-col">
           <Navbar/>
-          <Routes>
-            <Route path="/" element={<Home/>}/>
-            {/* Add other routes here */}
-          </Routes>
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home/>}/>
+              <Route path="/login" element={<Login/>}/>
+              {/* Add other routes here */}
+            </Routes>
+          </main>
         </div>
       </AppContextProvider>
     </BrowserRouter>

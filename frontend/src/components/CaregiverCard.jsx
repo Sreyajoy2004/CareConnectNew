@@ -20,9 +20,9 @@ const CaregiverCard = ({ caregiver }) => {
   // Gradient based on care type
   const getGradient = () => {
     if (caregiver.careType === 'Childcare') {
-      return 'from-blue-500 via-blue-600 to-purple-600';
+      return 'from-blue-950 via-blue-800 to-purple-500';
     } else {
-      return 'from-purple-500 via-purple-600 to-blue-600';
+      return 'from-purple-700 via-purple-800 to-blue-950';
     }
   };
 

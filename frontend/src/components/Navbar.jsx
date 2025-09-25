@@ -54,6 +54,25 @@ const Navbar = () => {
     }
   };
 
+  // Smooth scroll to footer section
+  const scrollToFooter = () => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    
+    // If we're not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    } else {
+      // Already on home page, just scroll to bottom
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
   // helper to close menus when navigating
   const navAndClose = (path) => {
     setOpen(false);
@@ -77,7 +96,7 @@ const Navbar = () => {
     >
       {/* Logo + Brand */}
       <NavLink to="/" onClick={() => { setOpen(false); setServicesOpen(false); setProfileOpen(false); }} className="flex items-center gap-2">
-        <img className="h-12 w-auto" src={assets.logo} alt="CareConnect Logo" />
+        <img className="h-12 w-auto" src={assets.logotitle} alt="CareConnect Logo" />
         <span className="text-2xl font-bold text-[--color-primary]">CareConnect</span>
       </NavLink>
 
@@ -147,7 +166,13 @@ const Navbar = () => {
           </div>
         </div>
 
-        <NavLink to="/contact" className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200">Contact</NavLink>
+        {/* Contact - Updated to use smooth scroll to footer */}
+        <button 
+          onClick={scrollToFooter}
+          className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200"
+        >
+          Contact
+        </button>
 
         {/* Login Button - Always shown when user is not logged in */}
         {!user && (
@@ -218,7 +243,14 @@ const Navbar = () => {
           
           <NavLink to="/childcare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Childcare</NavLink>
           <NavLink to="/elderlycare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Elderly Care</NavLink>
-          <NavLink to="/contact" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Contact</NavLink>
+          
+          {/* Mobile Contact - Updated to use smooth scroll to footer */}
+          <button 
+            onClick={scrollToFooter}
+            className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+          >
+            Contact
+          </button>
 
           {/* Mobile Login/Logout */}
           {!user ? (

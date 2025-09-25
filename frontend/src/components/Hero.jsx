@@ -6,21 +6,37 @@ import { assets } from '../assets/assets';
 
 const Hero = () => {
   const navigate = useNavigate();
-  const { user } = useAppContext();
+  const { user, role } = useAppContext(); // Added role
 
   const handleFindCaregivers = () => {
     if (user) {
-      navigate('/caregivers');
+      // Check user role for proper redirection
+      if (role === 'careseeker' || role === 'admin') {
+        navigate('/caregivers');
+      } else if (role === 'careprovider') {
+        // Caregivers shouldn't search for caregivers - redirect to their dashboard
+        navigate('/careprovider/dashboard');
+      }
     } else {
-      navigate('/register?role=careseeker');
+      // Not logged in - go to login page instead of register
+      navigate('/login', { state: { from: '/caregivers' } });
     }
   };
 
   const handleBecomeCaregiver = () => {
     if (user) {
-      navigate('/become-provider');
+      // Check user role for proper redirection
+      if (role === 'careprovider') {
+        navigate('/careprovider/dashboard');
+      } else if (role === 'careseeker') {
+        // If careseeker wants to become caregiver, guide to registration
+        navigate('/register', { state: { switchTo: 'careprovider' } });
+      } else if (role === 'admin') {
+        navigate('/admin/dashboard');
+      }
     } else {
-      navigate('/register?role=careprovider');
+      // Not logged in - go to login page instead of register
+      navigate('/login', { state: { from: '/careprovider/dashboard' } });
     }
   };
 
