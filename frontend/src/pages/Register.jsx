@@ -24,7 +24,8 @@ const Register = () => {
     hourlyRate: '',
     availability: '',
     bio: '',
-    certifications: []
+    certifications: [],
+    profileImage: null
   });
 
   const [showSpecialtiesDropdown, setShowSpecialtiesDropdown] = useState(false);
@@ -38,9 +39,10 @@ const Register = () => {
   const from = location.state?.from?.pathname || '/dashboard';
   const switchTo = location.state?.switchTo;
 
-  // Create ref for the dropdown container
+  // Create refs
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
+  const profileImageInputRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -96,7 +98,29 @@ const Register = () => {
     }
 
     try {
-      const success = await register(formData);
+      // Prepare complete data for backend including files
+      const userData = {
+        role: formData.role,
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address: formData.address,
+        emergencyContact: formData.emergencyContact,
+        experience: formData.experience,
+        qualifications: formData.qualifications,
+        mainSpecialty: formData.mainSpecialty,
+        specialties: formData.mainSpecialty === 'childcare' ? formData.childcareSpecialties : formData.elderlycareSpecialties,
+        hourlyRate: formData.hourlyRate,
+        availability: formData.availability,
+        bio: formData.bio,
+        profileImage: formData.profileImage,
+        certifications: formData.certifications, // Array of file objects
+        memberSince: new Date().toISOString()
+      };
+
+      const success = await register(userData);
       
       if (success) {
         navigate(from, { replace: true });
@@ -143,11 +167,43 @@ const Register = () => {
     });
   };
 
+  const handleProfileImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      setFormData({
+        ...formData,
+        profileImage: file
+      });
+    }
+  };
+
   const removeFile = (indexToRemove) => {
     setFormData({
       ...formData,
       certifications: formData.certifications.filter((_, index) => index !== indexToRemove)
     });
+  };
+
+  const removeProfileImage = () => {
+    setFormData({
+      ...formData,
+      profileImage: null
+    });
+    if (profileImageInputRef.current) {
+      profileImageInputRef.current.value = '';
+    }
   };
 
   const handleMainSpecialtyChange = (specialty) => {
@@ -166,6 +222,15 @@ const Register = () => {
 
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleProfileImageButtonClick = () => {
+    profileImageInputRef.current?.click();
+  };
+
+  const getInitials = (firstName, lastName) => {
+    if (!firstName && !lastName) return 'UP';
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
   // Set role from URL state if provided
@@ -343,33 +408,96 @@ const Register = () => {
         {/* CareProvider Specific Fields */}
         {formData.role === 'careprovider' && (
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Profile Photo Upload */}
+            <div>
+              <label className="block text-left text-sm font-medium text-gray-700 mb-2">
+                Profile Photo
+              </label>
+              <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg overflow-hidden">
+                    {formData.profileImage ? (
+                      <img 
+                        src={URL.createObjectURL(formData.profileImage)} 
+                        alt="Profile preview" 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      getInitials(formData.firstName, formData.lastName)
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 w-full">
+                  <input 
+                    ref={profileImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={handleProfileImageButtonClick}
+                      className="bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all flex items-center justify-center gap-2 hover:bg-gray-50 flex-1"
+                    >
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="truncate">{formData.profileImage ? 'Change Photo' : 'Upload Photo'}</span>
+                    </button>
+                    {formData.profileImage && (
+                      <button
+                        type="button"
+                        onClick={removeProfileImage}
+                        className="bg-red-50 border border-red-200 text-red-600 h-12 rounded-full px-4 text-sm outline-none hover:bg-red-100 transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none sm:w-auto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 text-left">Recommended: Square image, max 5MB</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <input 
+                  name="experience"
+                  type="number" 
+                  placeholder="Years of Experience" 
+                  value={formData.experience}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+              <div>
+                <input 
+                  name="hourlyRate"
+                  type="number" 
+                  placeholder="Hourly Rate ($)" 
+                  value={formData.hourlyRate}
+                  onChange={handleChange}
+                  className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+            </div>
+            
+            <div>
               <input 
-                name="experience"
-                type="number" 
-                placeholder="Years of Experience" 
-                value={formData.experience}
-                onChange={handleChange}
-                className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              />
-              <input 
-                name="hourlyRate"
-                type="number" 
-                placeholder="Hourly Rate ($)" 
-                value={formData.hourlyRate}
+                name="qualifications"
+                type="text" 
+                placeholder="Qualifications (e.g., CPR Certified, Nursing Degree)" 
+                value={formData.qualifications}
                 onChange={handleChange}
                 className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
               />
             </div>
-            
-            <input 
-              name="qualifications"
-              type="text" 
-              placeholder="Qualifications (e.g., CPR Certified, Nursing Degree)" 
-              value={formData.qualifications}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            />
 
             {/* Main Specialty Selection */}
             <div>
@@ -408,14 +536,14 @@ const Register = () => {
                   onClick={toggleSpecialtiesDropdown}
                   className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-left flex justify-between items-center"
                 >
-                  <span>
+                  <span className="truncate">
                     {formData.mainSpecialty === 'childcare' 
                       ? `Childcare Specialties (${formData.childcareSpecialties.length} selected)`
                       : `Elderly Care Specialties (${formData.elderlycareSpecialties.length} selected)`
                     }
                   </span>
                   <svg 
-                    className={`w-4 h-4 transition-transform ${showSpecialtiesDropdown ? 'rotate-180' : ''}`} 
+                    className={`w-4 h-4 transition-transform flex-shrink-0 ${showSpecialtiesDropdown ? 'rotate-180' : ''}`} 
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -466,39 +594,43 @@ const Register = () => {
               </div>
             )}
 
-            <select 
-              name="availability"
-              value={formData.availability}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            >
-              <option value="">Select Availability</option>
-              <option value="full-time">Full Time</option>
-              <option value="part-time">Part Time</option>
-              <option value="weekends">Weekends Only</option>
-              <option value="flexible">Flexible</option>
-            </select>
+            <div>
+              <select 
+                name="availability"
+                value={formData.availability}
+                onChange={handleChange}
+                className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              >
+                <option value="">Select Availability</option>
+                <option value="Full-time">Full Time</option>
+                <option value="Part-time">Part Time</option>
+                <option value="Weekends">Weekends Only</option>
+                <option value="Flexible">Flexible</option>
+              </select>
+            </div>
 
-            <textarea 
-              name="bio"
-              placeholder="Brief bio about yourself and your caregiving experience..."
-              value={formData.bio}
-              onChange={handleChange}
-              rows={3}
-              className="w-full bg-white border border-gray-300/80 rounded-2xl p-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
-            />
+            <div>
+              <textarea 
+                name="bio"
+                placeholder="Brief bio about yourself and your caregiving experience..."
+                value={formData.bio}
+                onChange={handleChange}
+                rows={3}
+                className="w-full bg-white border border-gray-300/80 rounded-2xl p-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+              />
+            </div>
 
             {/* Certifications Upload */}
             <div>
               <label className="block text-left text-sm font-medium text-gray-700 mb-2">
-                Upload Certifications (PDF, DOC)
+                Upload Certifications (PDF, DOC, JPG, PNG)
               </label>
               <input 
                 ref={fileInputRef}
                 name="certifications"
                 type="file" 
                 multiple
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -536,6 +668,22 @@ const Register = () => {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Admin Notification Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-blue-800 text-sm font-medium">Admin Verification Required</p>
+                  <p className="text-blue-600 text-xs mt-1">
+                    Your profile will be reviewed by our admin team. You'll be able to edit all information later, 
+                    and admins will be notified of any changes for verification.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

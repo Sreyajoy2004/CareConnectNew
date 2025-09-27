@@ -1,5 +1,5 @@
 // src/context/AppContext.jsx
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 // 1. Create context
 export const AppContext = createContext();
@@ -7,11 +7,12 @@ export const AppContext = createContext();
 // 2. Provider component
 export const AppContextProvider = ({ children }) => {
   // Global states
-  const [user, setUser] = useState(null); // Changed from {name:"sreya"} to null
-  const [role, setRole] = useState(null); // Changed from "careseeker" to null
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [adminNotifications, setAdminNotifications] = useState([]);
 
   // Mock user database for testing
   const mockUsers = {
@@ -23,7 +24,22 @@ export const AppContextProvider = ({ children }) => {
     'caregiver@careconnect.com': { 
       name: 'Maria Caregiver', 
       role: 'careprovider',
-      password: 'demo123'
+      password: 'demo123',
+      profileData: {
+        phone: "+1 (555) 123-4567",
+        address: "123 Care Street, Boston, MA 02115",
+        bio: "Experienced caregiver with 5+ years in child and elderly care.",
+        specialties: ["Child Care", "Elderly Care"],
+        experience: "5 years",
+        hourlyRate: "$25/hr",
+        availability: "Full-time",
+        qualifications: "CPR Certified, Nursing Degree",
+        mainSpecialty: "Childcare",
+        certifications: ["CPR Certificate.pdf", "First Aid Certificate.pdf"],
+        memberSince: "Jan 2023",
+        completedJobs: 47,
+        responseRate: 95
+      }
     },
     'admin@careconnect.com': { 
       name: 'Admin User',
@@ -32,20 +48,43 @@ export const AppContextProvider = ({ children }) => {
     }
   };
 
-  // Updated login function that accepts email and password
+  // Function to notify admin about profile changes
+  const notifyAdmin = (userId, userName, updates) => {
+    const notification = {
+      id: Date.now(),
+      type: 'profile_update',
+      userId,
+      userName,
+      updates,
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+    
+    setAdminNotifications(prev => [notification, ...prev]);
+    
+    // In real app, this would be an API call to backend
+    console.log('Admin notified about profile update:', notification);
+  };
+
+  // Login function
   const login = async (email, password) => {
     setLoading(true);
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const userData = mockUsers[email];
       
       if (userData && userData.password === password) {
         const user = {
+          id: email.split('@')[0],
           email: email,
           name: userData.name,
-          role: userData.role
+          role: userData.role,
+          profileData: userData.profileData || {
+            memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+            completedJobs: 0,
+            responseRate: 100
+          }
         };
         
         setUser(user);
@@ -53,15 +92,104 @@ export const AppContextProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(user));
         
         setLoading(false);
-        return true; // Success
+        return true;
       } else {
         setLoading(false);
-        return false; // Invalid credentials
+        return false;
       }
     } catch (error) {
       setLoading(false);
-      return false; // Login failed
+      return false;
     }
+  };
+
+  // Register function - Enhanced for caregiver profile data
+  const register = async (formData) => {
+    setLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const user = {
+        id: formData.email.split('@')[0],
+        email: formData.email,
+        name: `${formData.firstName} ${formData.lastName}`,
+        role: formData.role,
+        profileData: {
+          phone: formData.phone,
+          address: formData.address,
+          experience: formData.experience ? `${formData.experience} years` : '0 years',
+          qualifications: formData.qualifications || '',
+          specialties: formData.specialties || [],
+          hourlyRate: formData.hourlyRate ? `$${formData.hourlyRate}/hr` : '$0/hr',
+          availability: formData.availability || 'Flexible',
+          bio: formData.bio || '',
+          mainSpecialty: formData.mainSpecialty || '',
+          certifications: formData.certifications ? formData.certifications.map(f => f.name) : [],
+          memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+          completedJobs: 0,
+          responseRate: 100
+        }
+      };
+      
+      setUser(user);
+      setRole(formData.role);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Notify admin about new caregiver registration
+      if (formData.role === 'careprovider') {
+        notifyAdmin(user.id, user.name, { type: 'new_registration' });
+      }
+      
+      setLoading(false);
+      return true;
+    } catch (error) {
+      setLoading(false);
+      return false;
+    }
+  };
+
+  // Update user profile function
+  const updateUserProfile = async (updates) => {
+    setLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const updatedUser = {
+        ...user,
+        profileData: {
+          ...user.profileData,
+          ...updates
+        }
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Notify admin about profile changes
+      if (user.role === 'careprovider') {
+        notifyAdmin(user.id, user.name, updates);
+      }
+      
+      setLoading(false);
+      return true;
+    } catch (error) {
+      setLoading(false);
+      return false;
+    }
+  };
+
+  // Admin function to verify caregiver
+  const verifyCaregiver = (userId) => {
+    setAdminNotifications(prev => 
+      prev.map(notification => 
+        notification.userId === userId 
+          ? { ...notification, status: 'verified' }
+          : notification
+      )
+    );
+    
+    // In real app, update caregiver status in backend
+    console.log(`Caregiver ${userId} verified by admin`);
   };
 
   // Logout function
@@ -74,12 +202,17 @@ export const AppContextProvider = ({ children }) => {
   };
 
   // Check for existing user on app load
-  useState(() => {
+  useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      setRole(userData.role);
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setRole(userData.role);
+      } catch (error) {
+        console.error('Error parsing saved user data:', error);
+        localStorage.removeItem('user');
+      }
     }
   }, []);
 
@@ -94,8 +227,13 @@ export const AppContextProvider = ({ children }) => {
     setReviews,
     loading,
     setLoading,
+    adminNotifications,
     login,
     logout,
+    register,
+    updateUserProfile,
+    verifyCaregiver,
+    notifyAdmin
   };
 
   return (
@@ -107,5 +245,11 @@ export const AppContextProvider = ({ children }) => {
 
 // 3. Custom hook
 export const useAppContext = () => {
-  return useContext(AppContext);
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useAppContext must be used within an AppContextProvider');
+  }
+  return context;
 };
+
+export default AppContextProvider;

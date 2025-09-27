@@ -15,7 +15,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,16 +28,35 @@ const Login = () => {
       return;
     }
 
+    // Trim and lowercase email for consistency
+    const trimmedEmail = formData.email.trim().toLowerCase();
+    
     try {
-      const success = await login(formData.email, formData.password);
+      const success = await login(trimmedEmail, formData.password);
       
       if (success) {
-        navigate(from, { replace: true });
+        // Get user role from localStorage (more reliable)
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          console.log('Redirecting based on role:', userData.role); // Debug log
+          
+          if (userData.role === 'careprovider') {
+            navigate('/careprovider/dashboard', { replace: true });
+          } else if (userData.role === 'careseeker') {
+            navigate('/careseeker/dashboard', { replace: true });
+          } else if (userData.role === 'admin') {
+            navigate('/admin/dashboard', { replace: true });
+          } else {
+            navigate(from, { replace: true });
+          }
+        }
       } else {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Try: caregiver@careconnect.com / demo123');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
+      console.error('Login error:', err); // Debug log
     } finally {
       setLoading(false);
     }
@@ -51,8 +70,40 @@ const Login = () => {
     if (error) setError('');
   };
 
+  // Test function to quickly fill demo credentials
+  const fillDemoCredentials = (type) => {
+    if (type === 'caregiver') {
+      setFormData({
+        email: 'caregiver@careconnect.com',
+        password: 'demo123'
+      });
+    } else if (type === 'family') {
+      setFormData({
+        email: 'family@careconnect.com',
+        password: 'demo123'
+      });
+    }
+    if (error) setError('');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Demo Credentials Quick Fill */}
+      <div className="absolute top-4 right-4 flex space-x-2">
+        <button 
+          onClick={() => fillDemoCredentials('caregiver')}
+          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+        >
+          Fill Caregiver
+        </button>
+        <button 
+          onClick={() => fillDemoCredentials('family')}
+          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+        >
+          Fill Family
+        </button>
+      </div>
+
       {/* Animated Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-800/10 to-transparent animate-pulse"></div>
       
