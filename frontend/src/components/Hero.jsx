@@ -1,4 +1,3 @@
-// src/components/Hero.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -12,12 +11,16 @@ const Hero = () => {
     if (user) {
       // Check user role for proper redirection
       if (role === 'careseeker') {
-        navigate('/caregivers');
+        // Scroll to search caregivers section on home page
+        const searchSection = document.getElementById('search-caregivers');
+        if (searchSection) {
+          searchSection.scrollIntoView({ behavior: 'smooth' });
+        }
       } else if (role === 'careprovider') {
         // Caregivers shouldn't search for caregivers - redirect to their dashboard
         navigate('/careprovider/dashboard');
       } else if (role === 'admin') {
-        navigate('/admin/caregivers'); // Admin management view
+        navigate('/admin/caregivers');
       }
     } else {
       // Not logged in - go to login page

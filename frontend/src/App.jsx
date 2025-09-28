@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppContextProvider, useAppContext } from './context/AppContext'
@@ -6,11 +5,20 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
+
+// CareProvider Pages
 import CareProviderDashboard from './pages/CareProviderDashboard'
 import Profile from './pages/careprovider/Profile'
 import Bookings from './pages/careprovider/Bookings'
 import Payments from './pages/careprovider/Payments'
 import Reviews from './pages/careprovider/Reviews'
+
+// CareSeeker Pages
+import CareSeekerDashboard from './pages/CareSeekerDashboard'
+import SearchCaregivers from './pages/careseeker/SearchCaregivers'
+import CareSeekerBookings from './pages/careseeker/Bookings'
+import CareSeekerReviews from './pages/careseeker/Reviews'
+import CareProviderProfileRead from './pages/careseeker/CareProviderProfileRead'
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -27,15 +35,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
-// Component to hide navbar on auth pages
+// Component that ALWAYS shows navbar on every page
 const Layout = ({ children }) => {
-  const { user } = useAppContext();
-  const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
-  
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
-  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar/>
@@ -50,6 +51,7 @@ const AppContent = () => {
   return (
     <Layout>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home/>}/>
         <Route path="/login" element={<Login/>}/>
         <Route path="/register" element={<Register/>}/>
@@ -92,6 +94,50 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRole="careprovider">
               <Reviews/>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Care Seeker Routes */}
+        <Route 
+          path="/careseeker/dashboard" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <CareSeekerDashboard/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/search" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <SearchCaregivers/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/careseeker/bookings" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <CareSeekerBookings/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/careseeker/reviews" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <CareSeekerReviews/>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Public Caregiver Profile View (accessible to both roles) */}
+        <Route 
+          path="/careprovider/:id" 
+          element={
+            <ProtectedRoute>
+              <CareProviderProfileRead/>
             </ProtectedRoute>
           } 
         />

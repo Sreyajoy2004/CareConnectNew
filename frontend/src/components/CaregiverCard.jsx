@@ -14,7 +14,15 @@ const CaregiverCard = ({ caregiver }) => {
       navigate('/register?role=careseeker');
       return;
     }
-    navigate(`/caregiver/${caregiver.id}`);
+    
+    // Only allow care seekers to view profiles
+    if (user.role === 'careprovider') {
+      alert('Care providers cannot view other caregiver profiles. Please use a care seeker account.');
+      return;
+    }
+    
+    // Navigate to read-only profile view for care seekers only
+    navigate(`/careprovider/${caregiver.id}`);
   };
 
   // Gradient based on care type
@@ -173,8 +181,17 @@ const CaregiverCard = ({ caregiver }) => {
               before:hover:translate-x-[100%] before:transition-transform before:duration-300
             `}
           >
-            <span className="relative z-10">View Profile</span>
+            <span className="relative z-10">
+              {user?.role === 'careprovider' ? 'Not Available' : 'View Profile'}
+            </span>
           </button>
+
+          {/* Warning message for care providers */}
+          {user?.role === 'careprovider' && (
+            <p className="text-xs text-red-500 text-center mt-2">
+              Care providers cannot view other profiles
+            </p>
+          )}
         </div>
 
         {/* Hover Effect Border */}

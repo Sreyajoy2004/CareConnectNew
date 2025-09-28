@@ -1,4 +1,3 @@
-// src/components/SearchCaregivers.jsx
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -16,10 +15,10 @@ const SearchCaregivers = () => {
     maxRate: ''
   });
 
-  // Enhanced caregiver data
+  // Enhanced caregiver data with IDs that match our route structure
   const caregivers = [
     {
-      id: 1,
+      id: 'caregiver1', // Changed to match our route parameter
       name: "Sarah Johnson",
       careType: "Childcare",
       specialization: "Infant Care Specialist",
@@ -33,7 +32,7 @@ const SearchCaregivers = () => {
       verified: true
     },
     {
-      id: 2,
+      id: 'caregiver2',
       name: "Maria Garcia",
       careType: "Elderly Care", 
       specialization: "Senior Companion",
@@ -47,7 +46,7 @@ const SearchCaregivers = () => {
       verified: true
     },
     {
-      id: 3,
+      id: 'caregiver3',
       name: "David Chen",
       careType: "Childcare",
       specialization: "Toddler Care Expert",
@@ -61,7 +60,7 @@ const SearchCaregivers = () => {
       verified: false
     },
     {
-      id: 4,
+      id: 'caregiver4',
       name: "Lisa Wang",
       careType: "Elderly Care",
       specialization: "Dementia Care Specialist", 
