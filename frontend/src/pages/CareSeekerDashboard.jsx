@@ -1,138 +1,129 @@
-// src/pages/CareSeekerDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../components/careseeker/CareSeekerSidebar';
 import { useAppContext } from '../context/AppContext';
+import CaregiverCard from '../components/CaregiverCard';
+import { assets } from '../assets/assets';
 
 const CareSeekerDashboard = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
-  
-  const [dashboardData, setDashboardData] = useState({
-    upcomingBookings: 0,
-    totalSpent: 0,
-    favoriteCaregivers: 0,
-    recentBookings: []
+
+  const [filters, setFilters] = useState({
+    careType: '',
+    specialization: '',
+    location: '',
+    maxRate: ''
   });
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  // Fetch dashboard data from backend with localStorage integration
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      // Try API call first, fallback to mock data if fails
-      try {
-        const response = await fetch(`/api/careseeker/${user?.id}/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setDashboardData(data);
-        } else {
-          throw new Error('API not available');
-        }
-      } catch (apiError) {
-        // Fallback to mock data with localStorage integration
-        const storedBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-        const now = new Date();
-        
-        const upcomingBookings = storedBookings.filter(booking => 
-          new Date(booking.startTime) > now && (booking.status === 'confirmed' || booking.status === 'pending')
-        ).length;
-        
-        const totalSpent = storedBookings
-          .filter(booking => booking.status === 'completed')
-          .reduce((sum, booking) => sum + booking.totalAmount, 0);
-        
-        const recentBookings = storedBookings
-          .slice(0, 5) // Get latest 5 bookings
-          .map(booking => ({
-            id: booking.id,
-            caregiverName: booking.caregiverName,
-            serviceType: booking.serviceType,
-            date: booking.startTime,
-            duration: booking.duration,
-            amount: booking.totalAmount,
-            status: booking.status,
-            caregiverId: booking.caregiverId
-          }));
-
-        // Add static demo data if no stored bookings
-        if (storedBookings.length === 0) {
-          setDashboardData({
-            upcomingBookings: 2,
-            totalSpent: 1250,
-            favoriteCaregivers: 3,
-            recentBookings: [
-              {
-                id: 1,
-                caregiverName: 'Maria Caregiver',
-                serviceType: 'Elderly Care',
-                date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                duration: 4,
-                amount: 100,
-                status: 'confirmed',
-                caregiverId: 'caregiver1'
-              },
-              {
-                id: 2,
-                caregiverName: 'John Caregiver',
-                serviceType: 'Child Care',
-                date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-                duration: 6,
-                amount: 150,
-                status: 'pending',
-                caregiverId: 'caregiver2'
-              }
-            ]
-          });
-        } else {
-          setDashboardData({
-            upcomingBookings,
-            totalSpent,
-            favoriteCaregivers: 3, // Static for demo
-            recentBookings
-          });
-        }
-      }
-    } catch (err) {
-      setError('Failed to load dashboard data');
-      console.error('Error fetching dashboard:', err);
-    } finally {
-      setLoading(false);
+  // Enhanced caregiver data with IDs that match our route structure
+  const caregivers = [
+    {
+      id: 'caregiver1',
+      name: "Sarah Johnson",
+      careType: "Childcare",
+      specialization: "Infant Care Specialist",
+      rate: 18,
+      rating: 4.8,
+      reviews: 42,
+      experience: "5 years experience",
+      location: "Downtown, NY",
+      availability: "Full-time",
+      image: assets.profile_icon,
+      verified: true,
+      profileImage: null,
+      qualifications: "CPR Certified, Nursing Degree",
+      specialties: ["Newborn Care", "Toddler Care"]
+    },
+    {
+      id: 'caregiver2',
+      name: "Maria Garcia",
+      careType: "Elderly Care", 
+      specialization: "Senior Companion",
+      rate: 22,
+      rating: 4.9,
+      reviews: 56,
+      experience: "8 years experience",
+      location: "North District, CHI",
+      availability: "Part-time",
+      image: assets.profile_icon,
+      verified: true,
+      profileImage: null,
+      qualifications: "Geriatric Care Certified",
+      specialties: ["Dementia Care", "Mobility Assistance"]
+    },
+    {
+      id: 'caregiver3',
+      name: "David Chen",
+      careType: "Childcare",
+      specialization: "Toddler Care Expert",
+      rate: 20,
+      rating: 4.7,
+      reviews: 38,
+      experience: "6 years experience", 
+      location: "East Side, BOS",
+      availability: "Full-time",
+      image: assets.profile_icon,
+      verified: false,
+      profileImage: null,
+      qualifications: "Early Childhood Education",
+      specialties: ["Homework Assistance", "Child Development"]
+    },
+    {
+      id: 'caregiver4',
+      name: "Lisa Wang",
+      careType: "Elderly Care",
+      specialization: "Dementia Care Specialist", 
+      rate: 25,
+      rating: 4.9,
+      reviews: 34,
+      experience: "10 years experience",
+      location: "West End, SEA",
+      availability: "Full-time",
+      image: assets.profile_icon,
+      verified: true,
+      profileImage: null,
+      qualifications: "Special Needs Certification",
+      specialties: ["Alzheimer Care", "Medication Management"]
     }
+  ];
+
+  const specializationOptions = {
+    'Childcare': ['Infant Care Specialist', 'Toddler Care Expert', 'After School Care', 'Special Needs'],
+    'Elderly Care': ['Senior Companion', 'Dementia Care Specialist', 'Mobility Assistance', 'Medical Care'],
+    '': []
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const filteredCaregivers = useMemo(() => {
+    const hasActiveFilters = filters.careType || filters.specialization || filters.location || filters.maxRate;
+    if (!hasActiveFilters) return caregivers; // Show all caregivers when no filters
+
+    return caregivers.filter(caregiver => {
+      const matchesCareType = !filters.careType || caregiver.careType === filters.careType;
+      const matchesSpecialization = !filters.specialization || caregiver.specialization === filters.specialization;
+      const matchesLocation = !filters.location || caregiver.location.toLowerCase().includes(filters.location.toLowerCase());
+      const matchesRate = !filters.maxRate || caregiver.rate <= parseInt(filters.maxRate);
+      
+      return matchesCareType && matchesSpecialization && matchesLocation && matchesRate;
+    });
+  }, [filters, caregivers]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value,
+      ...(key === 'careType' && { specialization: '' })
+    }));
   };
 
-  // Refresh data when component mounts to show latest bookings
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 2000); // Refresh every 2 seconds to catch new bookings
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // Rest of the component remains exactly the same...
-  // ... (keep all the existing JSX code for the dashboard)
+  const clearFilters = () => {
+    setFilters({
+      careType: '',
+      specialization: '',
+      location: '',
+      maxRate: ''
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
@@ -147,236 +138,117 @@ const CareSeekerDashboard = () => {
                 Welcome back, {user?.name || 'Care Seeker'}! 👋
               </h1>
               <p className="text-gray-600 mt-2">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+                Find the perfect caregiver for your needs
               </p>
             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {error}
-              <button 
-                onClick={fetchDashboardData}
-                className="ml-4 text-red-700 underline hover:text-red-800"
-              >
-                Try Again
-              </button>
-            </div>
-          )}
-          
-          {/* Stats Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Upcoming Bookings Card */}
-            <div className="group relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-              <div 
-                className="relative bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-sm border border-blue-100 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                onClick={() => navigate('/careseeker/bookings?filter=upcoming')}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">Upcoming Bookings</h3>
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-inner">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 mt-3 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                  {dashboardData.upcomingBookings}
-                </p>
-                <p className="text-gray-500 text-sm mt-1">Scheduled appointments</p>
-                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            {/* Total Spent Card */}
-            <div className="group relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 to-emerald-600 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-              <div 
-                className="relative bg-gradient-to-br from-white to-green-50 p-6 rounded-2xl shadow-sm border border-green-100 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                onClick={() => navigate('/careseeker/bookings')}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">Total Spent</h3>
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-xl flex items-center justify-center shadow-inner">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 mt-3 bg-gradient-to-r from-green-600 to-emerald-800 bg-clip-text text-transparent">
-                  {formatCurrency(dashboardData.totalSpent)}
-                </p>
-                <p className="text-gray-500 text-sm mt-1">Lifetime spending</p>
-                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Favorite Caregivers Card */}
-            <div className="group relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400 to-purple-600 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-300"></div>
-              <div 
-                className="relative bg-gradient-to-br from-white to-purple-50 p-6 rounded-2xl shadow-sm border border-purple-100 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                onClick={() => navigate('/search')}
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">Favorite Caregivers</h3>
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-inner">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 mt-3 bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
-                  {dashboardData.favoriteCaregivers}
-                </p>
-                <p className="text-gray-500 text-sm mt-1">Saved caregivers</p>
-                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div 
-              className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-sm border border-blue-100 hover:shadow-lg transition-all duration-300 cursor-pointer group"
-              onClick={() => navigate('/search')}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
+          {/* Search and Filter Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Find Your Perfect Caregiver
+              </h2>
+              
+              {/* Filter Section */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Care Type */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    Find Caregivers
-                  </h3>
-                  <p className="text-gray-600 mt-1">Search and book qualified caregivers</p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Care Type</label>
+                  <select 
+                    value={filters.careType}
+                    onChange={(e) => handleFilterChange('careType', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Childcare">Childcare</option>
+                    <option value="Elderly Care">Elderly Care</option>
+                  </select>
                 </div>
-                <svg className="w-6 h-6 text-blue-400 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </div>
 
-            <div 
-              className="bg-gradient-to-br from-white to-green-50 p-6 rounded-2xl shadow-sm border border-green-100 hover:shadow-lg transition-all duration-300 cursor-pointer group"
-              onClick={() => navigate('/careseeker/bookings')}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+                {/* Specialization */}
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
-                    Manage Bookings
-                  </h3>
-                  <p className="text-gray-600 mt-1">View and manage your appointments</p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Specialization</label>
+                  <select 
+                    value={filters.specialization}
+                    onChange={(e) => handleFilterChange('specialization', e.target.value)}
+                    disabled={!filters.careType}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 disabled:bg-gray-50"
+                  >
+                    <option value="">All Specialties</option>
+                    {specializationOptions[filters.careType]?.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
-                <svg className="w-6 h-6 text-green-400 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                  <input 
+                    type="text"
+                    placeholder="City or area..."
+                    value={filters.location}
+                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+
+                {/* Max Rate */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Max Rate</label>
+                  <input 
+                    type="number"
+                    placeholder="$ per hour"
+                    value={filters.maxRate}
+                    onChange={(e) => handleFilterChange('maxRate', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 placeholder-gray-400"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
-          
-          {/* Recent Bookings Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Recent Bookings</h2>
-              <button 
-                onClick={() => navigate('/careseeker/bookings')}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors flex items-center space-x-1 group"
-              >
-                <span>View All</span>
-                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            
-            {dashboardData.recentBookings.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No recent bookings</h3>
-                <p className="text-gray-600">Your upcoming bookings will appear here</p>
+
+              <div className="flex gap-4 justify-center">
                 <button 
-                  onClick={() => navigate('/search')}
-                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={clearFilters}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  Find Caregivers
+                  Clear Filters
                 </button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {dashboardData.recentBookings.map((booking) => (
-                  <div 
-                    key={booking.id} 
-                    className="flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-white rounded-xl border border-gray-100 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] group"
-                    onClick={() => navigate(`/careprovider/${booking.caregiverId}`)}
-                  >
-                    <div className="flex items-center space-x-4 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {booking.caregiverName.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {booking.caregiverName}
-                        </p>
-                        <p className="text-sm text-gray-600 capitalize">
-                          {booking.serviceType?.toLowerCase()} • {new Date(booking.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-gray-500">{booking.duration} hours • {formatCurrency(booking.amount)}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        booking.status === 'confirmed' 
-                          ? 'bg-green-100 text-green-800 group-hover:bg-green-200' 
-                          : booking.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200'
-                          : booking.status === 'completed'
-                          ? 'bg-blue-100 text-blue-800 group-hover:bg-blue-200'
-                          : 'bg-gray-100 text-gray-800 group-hover:bg-gray-200'
-                      } transition-colors capitalize`}>
-                        {booking.status}
-                      </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/careprovider/${booking.caregiverId}`);
-                        }}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
+            </div>
+          </div>
+
+          {/* Caregiver Cards Grid */}
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">
+                {filteredCaregivers.length > 0 
+                  ? `Found ${filteredCaregivers.length} caregivers` 
+                  : 'Browse our caregivers'
+                }
+              </h3>
+            </div>
+
+            {filteredCaregivers.length > 0 ? (
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredCaregivers.map(caregiver => (
+                  <CaregiverCard key={caregiver.id} caregiver={caregiver} />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  No caregivers match your current filters
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Adjust your filters to see more results
+                </p>
+                <button 
+                  onClick={clearFilters}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Clear All Filters
+                </button>
               </div>
             )}
           </div>

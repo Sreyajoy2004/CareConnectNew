@@ -89,6 +89,20 @@ const Navbar = () => {
     navigate("/");
   };
 
+  // Get dashboard route based on user role
+  const getDashboardRoute = () => {
+    switch (role) {
+      case 'careseeker':
+        return '/careseeker/dashboard';
+      case 'careprovider':
+        return '/careprovider/dashboard';
+      case 'admin':
+        return '/admin/dashboard';
+      default:
+        return '/';
+    }
+  };
+
   return (
     <nav
       ref={containerRef}
@@ -200,18 +214,15 @@ const Navbar = () => {
               onMouseEnter={() => setProfileOpen(true)}
               onMouseLeave={() => setProfileOpen(false)}
             >
-              {role === "careseeker" && (
-                <>
-                  <div onClick={() => navAndClose("/my-bookings")} className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100">My Bookings</div>
-                  <div onClick={() => navAndClose("/reviews")} className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100">Reviews</div>
-                </>
-              )}
-              {role === "careprovider" && (
-                <>
-                  <div onClick={() => navAndClose("/profile")} className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100">Profile</div>
-                  <div onClick={() => navAndClose("/reviews")} className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100">Reviews</div>
-                </>
-              )}
+              {/* Dashboard Option - Same for all roles */}
+              <div 
+                onClick={() => navAndClose(getDashboardRoute())} 
+                className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100"
+              >
+                Dashboard
+              </div>
+              
+              {/* Logout Option - Same for all roles */}
               <div
                 onClick={handleLogout}
                 className="px-4 py-3 text-blue-900 hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors duration-200 font-semibold"
@@ -262,18 +273,16 @@ const Navbar = () => {
             </button>
           ) : (
             <>
-              {role === "careseeker" && (
-                <>
-                  <NavLink to="/my-bookings" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">My Bookings</NavLink>
-                  <NavLink to="/reviews" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Reviews</NavLink>
-                </>
-              )}
-              {role === "careprovider" && (
-                <>
-                  <NavLink to="/profile" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Profile</NavLink>
-                  <NavLink to="/reviews" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Reviews</NavLink>
-                </>
-              )}
+              {/* Mobile Dashboard Option */}
+              <NavLink 
+                to={getDashboardRoute()} 
+                onClick={() => setOpen(false)} 
+                className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+              >
+                Dashboard
+              </NavLink>
+              
+              {/* Mobile Logout Option */}
               <button
                 onClick={handleLogout}
                 className="w-full text-center px-6 py-3 bg-red-600 hover:bg-red-700 transition-colors duration-200 text-white font-semibold rounded-full shadow-md mt-4"

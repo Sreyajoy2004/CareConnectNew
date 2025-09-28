@@ -14,6 +14,12 @@ const Bookings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviewData, setReviewData] = useState({
+    rating: 5,
+    comment: ''
+  });
   const { user } = useAppContext();
   const navigate = useNavigate();
 
@@ -24,8 +30,9 @@ const Bookings = () => {
     
     const now = new Date();
     
+    // Categorize bookings properly
     const upcoming = storedBookings.filter(booking => 
-      new Date(booking.startTime) > now && booking.status === 'confirmed'
+      booking.status === 'confirmed' && new Date(booking.startTime) > now
     );
     
     const pending = storedBookings.filter(booking => 
@@ -33,7 +40,7 @@ const Bookings = () => {
     );
     
     const completed = storedBookings.filter(booking => 
-      new Date(booking.startTime) < now && booking.status === 'completed'
+      booking.status === 'completed'
     );
     
     const cancelled = storedBookings.filter(booking => 
@@ -47,7 +54,7 @@ const Bookings = () => {
           {
             id: 1,
             caregiverId: 'caregiver1',
-            caregiverName: 'Maria Caregiver',
+            caregiverName: 'Maria Garcia',
             serviceType: 'Elderly Care',
             startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
             endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
@@ -57,44 +64,67 @@ const Bookings = () => {
             address: '123 Main St, Boston, MA',
             specialRequirements: 'Help with medication at 2 PM',
             canCancel: true,
-            canReschedule: true
+            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: '14:00',
+            notes: 'Please arrive 10 minutes early'
           }
         ],
         pending: [
           {
             id: 2,
             caregiverId: 'caregiver2',
-            caregiverName: 'John Caregiver',
+            caregiverName: 'John Smith',
             serviceType: 'Child Care',
-            startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+            startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
             duration: 6,
             totalAmount: 150,
             status: 'pending',
             address: '456 Oak Ave, Cambridge, MA',
             specialRequirements: 'Vegetarian meals only',
             canCancel: true,
-            canReschedule: false
+            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: '09:00',
+            notes: 'Child has peanut allergy'
           }
         ],
         completed: [
           {
             id: 3,
-            caregiverId: 'caregiver1',
-            caregiverName: 'Maria Caregiver',
-            serviceType: 'Elderly Care',
+            caregiverId: 'caregiver3',
+            caregiverName: 'Sarah Johnson',
+            serviceType: 'Special Needs',
             startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-            duration: 4,
-            totalAmount: 100,
+            endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+            duration: 5,
+            totalAmount: 125,
             status: 'completed',
-            address: '123 Main St, Boston, MA',
-            rating: 5,
-            review: 'Excellent service! Very professional.',
-            canReview: true
+            address: '789 Pine St, Boston, MA',
+            specialRequirements: 'Therapeutic exercises required',
+            canReview: true,
+            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: '10:00',
+            notes: 'Session went very well'
           }
         ],
-        cancelled: []
+        cancelled: [
+          {
+            id: 4,
+            caregiverId: 'caregiver4',
+            caregiverName: 'David Chen',
+            serviceType: 'Elderly Care',
+            startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+            duration: 5,
+            totalAmount: 125,
+            status: 'cancelled',
+            address: '789 Pine St, Boston, MA',
+            cancelledBy: 'careprovider',
+            cancellationReason: 'Caregiver emergency',
+            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            time: '10:00'
+          }
+        ]
       };
     }
 
@@ -103,6 +133,23 @@ const Bookings = () => {
 
   useEffect(() => {
     fetchBookings();
+    
+    // Listen for storage changes to get real-time updates
+    const handleStorageChange = () => {
+      fetchBookings();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Set up interval to check for updates
+    const interval = setInterval(() => {
+      fetchBookings();
+    }, 5000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchBookings = async () => {
@@ -136,28 +183,169 @@ const Bookings = () => {
 
   const handleCancelBooking = async (bookingId) => {
     try {
-      const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      // Try API first
+      try {
+        const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cancelledBy: 'careseeker',
+            cancellationReason: 'Changed plans'
+          })
+        });
+        
+        if (response.ok) {
+          fetchBookings();
+          return;
         }
-      });
-      
-      if (response.ok) {
-        fetchBookings(); // Refresh data
-      } else {
-        // Fallback to local update
-        const storedBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-        const updatedBookings = storedBookings.map(booking =>
-          booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
-        );
-        localStorage.setItem('careSeekerBookings', JSON.stringify(updatedBookings));
-        fetchBookings(); // Refresh with updated data
+      } catch (apiError) {
+        console.log('API not available, using demo mode');
       }
+
+      // Demo mode - update in localStorage for both care seeker and care provider
+      const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+      const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+      
+      // Update care seeker bookings
+      const updatedSeekerBookings = seekerBookings.map(booking =>
+        booking.id === bookingId 
+          ? { 
+              ...booking, 
+              status: 'cancelled', 
+              cancelledBy: 'careseeker',
+              cancellationReason: 'Changed plans'
+            } 
+          : booking
+      );
+      localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
+      
+      // Update care provider bookings
+      const updatedProviderBookings = providerBookings.map(booking =>
+        booking.id === bookingId 
+          ? { 
+              ...booking, 
+              status: 'cancelled', 
+              cancelledBy: 'careseeker',
+              cancellationReason: 'Changed plans'
+            } 
+          : booking
+      );
+      localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
+      
+      fetchBookings();
+      window.dispatchEvent(new Event('storage'));
+      
+      alert('Booking cancelled successfully!');
+      
     } catch (err) {
+      setError('Failed to cancel booking');
       console.error('Error cancelling booking:', err);
     }
+  };
+
+  const handleContactCaregiver = (caregiverId) => {
+    navigate(`/careprovider/${caregiverId}`);
+  };
+
+  const handleLeaveReview = (booking) => {
+    setSelectedBooking(booking);
+    setReviewData({
+      rating: 5,
+      comment: ''
+    });
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!selectedBooking) return;
+
+    try {
+      // Try API first
+      try {
+        const response = await fetch(`/api/bookings/${selectedBooking.id}/review`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            rating: reviewData.rating,
+            comment: reviewData.comment,
+            caregiverId: selectedBooking.caregiverId,
+            recommend: true
+          })
+        });
+        
+        if (response.ok) {
+          await updateLocalStorageAfterReview();
+        }
+      } catch (apiError) {
+        // Demo mode - update in localStorage
+        await updateLocalStorageAfterReview();
+      }
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      setError('Failed to submit review');
+    }
+  };
+
+  const updateLocalStorageAfterReview = async () => {
+    // Update care seeker bookings
+    const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+    const updatedSeekerBookings = seekerBookings.map(booking =>
+      booking.id === selectedBooking.id 
+        ? { 
+            ...booking, 
+            rating: reviewData.rating, 
+            review: reviewData.comment, 
+            canReview: false 
+          } 
+        : booking
+    );
+    localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
+
+    // Update care provider bookings
+    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+    const updatedProviderBookings = providerBookings.map(booking =>
+      booking.id === selectedBooking.id 
+        ? { 
+            ...booking, 
+            rating: reviewData.rating, 
+            review: reviewData.comment 
+          } 
+        : booking
+    );
+    localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
+
+    // Update reviews in localStorage
+    const existingReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    const newReview = {
+      id: Date.now(),
+      bookingId: selectedBooking.id,
+      caregiverId: selectedBooking.caregiverId,
+      caregiverName: selectedBooking.caregiverName,
+      serviceType: selectedBooking.serviceType,
+      rating: reviewData.rating,
+      comment: reviewData.comment,
+      recommend: true,
+      date: new Date().toISOString(),
+      clientName: user?.name || 'Care Seeker'
+    };
+    localStorage.setItem('careSeekerReviews', JSON.stringify([...existingReviews, newReview]));
+
+    // Also update caregiver reviews
+    const caregiverReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
+    localStorage.setItem('caregiverReviews', JSON.stringify([...caregiverReviews, newReview]));
+
+    setShowReviewModal(false);
+    setSelectedBooking(null);
+    fetchBookings();
+    window.dispatchEvent(new Event('storage'));
+    
+    alert('Thank you for your review!');
   };
 
   const formatDate = (dateString) => {
@@ -222,6 +410,16 @@ const Bookings = () => {
             </div>
           )}
 
+          {/* Demo Mode Indicator */}
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Demo Mode: Real-time synchronization with caregivers. Bookings update automatically.</span>
+            </div>
+          </div>
+
           {/* Tabs */}
           <div className="flex space-x-4 mb-6 border-b border-gray-200 overflow-x-auto">
             {[
@@ -255,9 +453,6 @@ const Bookings = () => {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No {activeTab} bookings</h3>
                 <p className="text-gray-600">You don't have any {activeTab} bookings at the moment.</p>
-                {activeTab === 'pending' && (
-                  <p className="text-sm text-blue-600 mt-2">New bookings will appear here after you book a caregiver.</p>
-                )}
                 {activeTab === 'upcoming' && (
                   <button 
                     onClick={() => navigate('/search')}
@@ -279,6 +474,14 @@ const Bookings = () => {
                         <div>
                           <h3 className="font-semibold text-gray-900">{booking.caregiverName}</h3>
                           <p className="text-gray-600 capitalize">{booking.serviceType?.toLowerCase()}</p>
+                          {booking.cancelledBy && (
+                            <p className="text-sm text-red-600">
+                              Cancelled by: {booking.cancelledBy === 'careprovider' ? 'Caregiver' : 'You'}
+                            </p>
+                          )}
+                          {booking.cancellationReason && (
+                            <p className="text-sm text-gray-600">Reason: {booking.cancellationReason}</p>
+                          )}
                         </div>
                       </div>
                       
@@ -309,20 +512,27 @@ const Bookings = () => {
 
                       {/* Rating for completed bookings */}
                       {activeTab === 'completed' && booking.rating && (
-                        <div className="mt-4 flex items-center space-x-2">
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <svg 
-                                key={star} 
-                                className={`w-4 h-4 ${star <= booking.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-                                fill="currentColor" 
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                              </svg>
-                            ))}
+                        <div className="mt-4">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="flex">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <svg 
+                                  key={star} 
+                                  className={`w-4 h-4 ${star <= booking.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+                                  fill="currentColor" 
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-600">Your rating: {booking.rating}/5</span>
                           </div>
-                          <span className="text-sm text-gray-600">Your rating: {booking.rating}/5</span>
+                          {booking.review && (
+                            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                              "{booking.review}"
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -346,7 +556,18 @@ const Bookings = () => {
                           View Caregiver
                         </button>
                         
-                        {activeTab === 'upcoming' && booking.canCancel && (
+                        {/* Contact Now button - Only for upcoming bookings */}
+                        {activeTab === 'upcoming' && (
+                          <button 
+                            onClick={() => handleContactCaregiver(booking.caregiverId)}
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full lg:w-auto"
+                          >
+                            Contact Now
+                          </button>
+                        )}
+                        
+                        {/* Cancel button - Only for pending and upcoming bookings */}
+                        {(activeTab === 'pending' || activeTab === 'upcoming') && booking.canCancel && (
                           <button 
                             onClick={() => handleCancelBooking(booking.id)}
                             className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors w-full lg:w-auto"
@@ -355,9 +576,10 @@ const Bookings = () => {
                           </button>
                         )}
                         
+                        {/* Leave Review button - Only for completed bookings without review */}
                         {activeTab === 'completed' && booking.canReview && !booking.rating && (
                           <button 
-                            onClick={() => navigate(`/review/${booking.id}`)}
+                            onClick={() => handleLeaveReview(booking)}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full lg:w-auto"
                           >
                             Leave Review
@@ -372,6 +594,62 @@ const Bookings = () => {
           </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Leave Review for {selectedBooking.caregiverName}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewData({...reviewData, rating: star})}
+                      className="text-2xl focus:outline-none"
+                    >
+                      {star <= reviewData.rating ? '⭐' : '☆'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                <textarea 
+                  value={reviewData.comment}
+                  onChange={(e) => setReviewData({...reviewData, comment: e.target.value})}
+                  rows="4"
+                  placeholder="Share your experience with this caregiver..."
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => setShowReviewModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl font-medium hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSubmitReview}
+                disabled={!reviewData.comment.trim()}
+                className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Submit Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

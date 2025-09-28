@@ -20,14 +20,81 @@ const CareProviderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch dashboard data from backend
+  // Get demo dashboard data
+  const getDemoDashboardData = () => {
+    const storedBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+    const now = new Date();
+    
+    const upcomingBookings = storedBookings.filter(booking => 
+      new Date(booking.startTime) > now && (booking.status === 'confirmed' || booking.status === 'pending')
+    ).length;
+    
+    const completedBookings = storedBookings.filter(booking => 
+      booking.status === 'completed'
+    ).length;
+    
+    const recentBookings = storedBookings
+      .slice(0, 5) // Get latest 5 bookings
+      .map(booking => ({
+        id: booking.id,
+        clientName: booking.clientName,
+        serviceType: booking.serviceType,
+        startTime: booking.startTime,
+        duration: booking.duration,
+        totalAmount: booking.totalAmount,
+        status: booking.status
+      }));
+
+    // Calculate average rating from completed bookings with ratings
+    const ratedBookings = storedBookings.filter(booking => 
+      booking.status === 'completed' && booking.rating
+    );
+    const averageRating = ratedBookings.length > 0 
+      ? ratedBookings.reduce((sum, booking) => sum + booking.rating, 0) / ratedBookings.length
+      : 4.8; // Default demo rating
+
+    // Add static demo data if no stored bookings
+    if (storedBookings.length === 0) {
+      return {
+        upcomingBookings: 1,
+        completedBookings: 1,
+        averageRating: 4.8,
+        totalReviews: 1,
+        responseRate: 95,
+        recentBookings: [
+          {
+            id: 1,
+            clientName: 'Emily Johnson',
+            serviceType: 'Elderly Care',
+            startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+            duration: 4,
+            totalAmount: 100,
+            status: 'confirmed'
+          }
+        ]
+      };
+    }
+
+    return {
+      upcomingBookings,
+      completedBookings,
+      averageRating,
+      totalReviews: ratedBookings.length,
+      responseRate: 95,
+      recentBookings
+    };
+  };
+
   useEffect(() => {
     fetchDashboardData();
     
-    // Set up real-time updates (polling every 30 seconds)
-    const interval = setInterval(fetchDashboardData, 30000);
+    // Listen for storage changes to update in real-time
+    const handleStorageChange = () => {
+      fetchDashboardData();
+    };
     
-    return () => clearInterval(interval);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -35,17 +102,24 @@ const CareProviderDashboard = () => {
       setLoading(true);
       setError('');
       
-      const response = await fetch(`/api/careprovider/${user?.id}/dashboard`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      try {
+        const response = await fetch(`/api/careprovider/${user?.id}/dashboard`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDashboardData(data);
+        } else {
+          throw new Error('API not available');
         }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      
-      const data = await response.json();
-      setDashboardData(data);
+      } catch (apiError) {
+        // Fallback to demo data with localStorage integration
+        setDashboardData(getDemoDashboardData());
+      }
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error('Error fetching dashboard:', err);
@@ -54,37 +128,14 @@ const CareProviderDashboard = () => {
     }
   };
 
-  // Handle booking status changes (for real-time updates)
-  const handleBookingUpdate = (bookingId, newStatus) => {
-    // Optimistically update the UI
-    setDashboardData(prev => ({
-      ...prev,
-      upcomingBookings: newStatus === 'completed' 
-        ? prev.upcomingBookings - 1 
-        : prev.upcomingBookings,
-      completedBookings: newStatus === 'completed' 
-        ? prev.completedBookings + 1 
-        : prev.completedBookings,
-      recentBookings: prev.recentBookings.map(booking =>
-        booking.id === bookingId 
-          ? { ...booking, status: newStatus }
-          : booking
-      )
-    }));
-  };
-
-  // Handle new review (for real-time updates)
-  const handleNewReview = (reviewData) => {
-    setDashboardData(prev => ({
-      ...prev,
-      averageRating: calculateNewAverage(prev.averageRating, prev.totalReviews, reviewData.rating),
-      totalReviews: prev.totalReviews + 1
-    }));
-  };
-
-  const calculateNewAverage = (currentAverage, currentCount, newRating) => {
-    return ((currentAverage * currentCount) + newRating) / (currentCount + 1);
-  };
+  // Refresh data periodically to catch new bookings
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
@@ -104,12 +155,9 @@ const CareProviderDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      {/* Dashboard Layout */}
       <div className="flex">
-        {/* Sidebar */}
         <CareProviderSidebar />
         
-        {/* Main Content Area */}
         <div className="flex-1 p-6 lg:p-8">
           {/* Welcome Header */}
           <div className="mb-8">
@@ -139,8 +187,18 @@ const CareProviderDashboard = () => {
               </button>
             </div>
           )}
+
+          {/* Demo Mode Indicator */}
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Demo Mode: Real-time updates enabled. New bookings will appear automatically.</span>
+            </div>
+          </div>
           
-          {/* Stats Cards Grid - Only 2 cards now */}
+          {/* Stats Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Upcoming Bookings Card */}
             <div className="group relative">
@@ -233,7 +291,7 @@ const CareProviderDashboard = () => {
                   <div 
                     key={booking.id} 
                     className="flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-white rounded-xl border border-gray-100 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] group"
-                    onClick={() => navigate(`/careprovider/bookings`)}
+                    onClick={() => navigate('/careprovider/bookings')}
                   >
                     <div className="flex items-center space-x-4 flex-1">
                       <div className={`w-3 h-3 rounded-full ${
@@ -244,18 +302,12 @@ const CareProviderDashboard = () => {
                       }`}></div>
                       <div className="flex-1">
                         <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {new Date(booking.startTime).toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {booking.clientName}
                         </p>
                         <p className="text-sm text-gray-600 capitalize">
-                          {booking.serviceType?.toLowerCase()} • {booking.client?.name}
+                          {booking.serviceType?.toLowerCase()} • {new Date(booking.startTime).toLocaleDateString()}
                         </p>
-                        <p className="text-xs text-gray-500">{booking.durationHours} hours • ${booking.totalAmount}</p>
+                        <p className="text-xs text-gray-500">{booking.duration} hours • ${booking.totalAmount}</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
@@ -270,15 +322,15 @@ const CareProviderDashboard = () => {
                       } transition-colors capitalize`}>
                         {booking.status}
                       </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        booking.paymentStatus === 'paid' 
-                          ? 'bg-green-100 text-green-800 group-hover:bg-green-200' 
-                          : booking.paymentStatus === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200'
-                          : 'bg-gray-100 text-gray-800 group-hover:bg-gray-200'
-                      } transition-colors capitalize`}>
-                        {booking.paymentStatus}
-                      </span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/careprovider/bookings');
+                        }}
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        Manage
+                      </button>
                     </div>
                   </div>
                 ))}

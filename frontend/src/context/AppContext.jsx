@@ -178,6 +178,37 @@ export const AppContextProvider = ({ children }) => {
     }
   };
 
+  // Update profile function for CareSeeker
+  const updateProfile = async (profileData) => {
+    setLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const updatedUser = {
+        ...user,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+        phone: profileData.phone,
+        profileData: {
+          ...user.profileData,
+          address: profileData.address,
+          emergencyContact: profileData.emergencyContact,
+          profileImage: profileData.profileImage
+        }
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      setLoading(false);
+      return true;
+    } catch (error) {
+      setLoading(false);
+      return false;
+    }
+  };
+
   // Admin function to verify caregiver
   const verifyCaregiver = (userId) => {
     setAdminNotifications(prev => 
@@ -232,6 +263,7 @@ export const AppContextProvider = ({ children }) => {
     logout,
     register,
     updateUserProfile,
+    updateProfile,
     verifyCaregiver,
     notifyAdmin
   };

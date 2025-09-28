@@ -11,36 +11,14 @@ const Reviews = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+  const [editData, setEditData] = useState({
+    rating: 5,
+    comment: ''
+  });
   const { user } = useAppContext();
   const navigate = useNavigate();
-
-  // Mock data
-  const mockReviews = [
-    {
-      id: 1,
-      caregiverId: 'caregiver1',
-      caregiverName: 'Maria Caregiver',
-      serviceType: 'Elderly Care',
-      rating: 5,
-      comment: 'Maria was absolutely wonderful with my elderly mother. She was patient, professional, and went above and beyond her duties. Highly recommend!',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      bookingId: 'booking123',
-      recommend: true,
-      canEdit: true
-    },
-    {
-      id: 2,
-      caregiverId: 'caregiver2',
-      caregiverName: 'John Caregiver',
-      serviceType: 'Child Care',
-      rating: 4,
-      comment: 'John was great with our kids. They really enjoyed their time with him. Would book again for sure.',
-      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      bookingId: 'booking124',
-      recommend: true,
-      canEdit: true
-    }
-  ];
 
   useEffect(() => {
     fetchReviews();
@@ -67,11 +45,47 @@ const Reviews = () => {
           throw new Error('API not available');
         }
       } catch (apiError) {
-        // Fallback to mock data
-        setReviews(mockReviews);
+        // Fallback to localStorage data
+        const storedReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+        setReviews(storedReviews);
+        
+        if (storedReviews.length === 0) {
+          // Add sample reviews if no reviews exist
+          const sampleReviews = [
+            {
+              id: 1,
+              caregiverId: 'caregiver1',
+              caregiverName: 'Maria Garcia',
+              serviceType: 'Elderly Care',
+              rating: 5,
+              comment: 'Maria was absolutely wonderful with my elderly mother. She was patient, professional, and went above and beyond her duties.',
+              createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+              bookingId: 'booking123',
+              canEdit: true
+            },
+            {
+              id: 2,
+              caregiverId: 'caregiver2',
+              caregiverName: 'John Smith',
+              serviceType: 'Child Care',
+              rating: 4,
+              comment: 'John was great with our kids. They really enjoyed their time with him. Would book again for sure.',
+              createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+              bookingId: 'booking124',
+              canEdit: true
+            }
+          ];
+          setReviews(sampleReviews);
+          localStorage.setItem('careSeekerReviews', JSON.stringify(sampleReviews));
+        }
+        
+        // Calculate stats
+        const currentReviews = storedReviews.length > 0 ? storedReviews : sampleReviews;
         setStats({
-          totalReviews: mockReviews.length,
-          averageRating: mockReviews.reduce((acc, review) => acc + review.rating, 0) / mockReviews.length
+          totalReviews: currentReviews.length,
+          averageRating: currentReviews.length > 0 
+            ? currentReviews.reduce((acc, review) => acc + review.rating, 0) / currentReviews.length 
+            : 0
         });
       }
     } catch (err) {
@@ -82,37 +96,214 @@ const Reviews = () => {
     }
   };
 
-  const handleEditReview = (reviewId) => {
-    navigate(`/review/edit/${reviewId}`);
+  const handleEditReview = (review) => {
+    setEditingReview(review);
+    setEditData({
+      rating: review.rating,
+      comment: review.comment
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateReview = async () => {
+    if (!editingReview) return;
+
+    try {
+      // Try API first
+      try {
+        const response = await fetch(`/api/reviews/${editingReview.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            rating: editData.rating,
+            comment: editData.comment,
+            caregiverId: editingReview.caregiverId
+          })
+        });
+        
+        if (response.ok) {
+          await updateLocalStorageAfterEdit();
+        }
+      } catch (apiError) {
+        // Demo mode - update in localStorage
+        await updateLocalStorageAfterEdit();
+      }
+    } catch (err) {
+      console.error('Error updating review:', err);
+      setError('Failed to update review');
+    }
+  };
+
+  const updateLocalStorageAfterEdit = async () => {
+    // Update care seeker reviews
+    const seekerReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    const updatedSeekerReviews = seekerReviews.map(review =>
+      review.id === editingReview.id 
+        ? { 
+            ...review, 
+            rating: editData.rating, 
+            comment: editData.comment,
+            updatedAt: new Date().toISOString()
+          } 
+        : review
+    );
+    localStorage.setItem('careSeekerReviews', JSON.stringify(updatedSeekerReviews));
+
+    // Update care provider reviews
+    const providerReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
+    const updatedProviderReviews = providerReviews.map(review =>
+      review.id === editingReview.id 
+        ? { 
+            ...review, 
+            rating: editData.rating, 
+            comment: editData.comment,
+            updatedAt: new Date().toISOString()
+          } 
+        : review
+    );
+    localStorage.setItem('caregiverReviews', JSON.stringify(updatedProviderReviews));
+
+    // Update bookings with review data
+    const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+    const updatedSeekerBookings = seekerBookings.map(booking =>
+      booking.id === editingReview.bookingId 
+        ? { 
+            ...booking, 
+            rating: editData.rating, 
+            review: editData.comment
+          } 
+        : booking
+    );
+    localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
+
+    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+    const updatedProviderBookings = providerBookings.map(booking =>
+      booking.id === editingReview.bookingId 
+        ? { 
+            ...booking, 
+            rating: editData.rating, 
+            review: editData.comment
+          } 
+        : booking
+    );
+    localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
+
+    // Update the component state immediately
+    setReviews(prevReviews => 
+      prevReviews.map(review => 
+        review.id === editingReview.id 
+          ? { 
+              ...review, 
+              rating: editData.rating, 
+              comment: editData.comment,
+              updatedAt: new Date().toISOString()
+            } 
+          : review
+      )
+    );
+
+    // Update stats
+    const updatedReviewsList = updatedSeekerReviews.length > 0 ? updatedSeekerReviews : JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    setStats({
+      totalReviews: updatedReviewsList.length,
+      averageRating: updatedReviewsList.length > 0 
+        ? updatedReviewsList.reduce((acc, review) => acc + review.rating, 0) / updatedReviewsList.length 
+        : 0
+    });
+
+    setShowEditModal(false);
+    setEditingReview(null);
+    window.dispatchEvent(new Event('storage'));
+    
+    alert('Review updated successfully!');
   };
 
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm('Are you sure you want to delete this review?')) return;
     
     try {
-      const response = await fetch(`/api/reviews/${reviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      // Try API first
+      try {
+        const response = await fetch(`/api/reviews/${reviewId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          await updateLocalStorageAfterDelete(reviewId);
         }
-      });
-      
-      if (response.ok) {
-        setReviews(prev => prev.filter(review => review.id !== reviewId));
-        // Update stats
-        setStats(prev => ({
-          totalReviews: prev.totalReviews - 1,
-          averageRating: prev.totalReviews > 1 ? 
-            (prev.averageRating * prev.totalReviews - reviews.find(r => r.id === reviewId).rating) / (prev.totalReviews - 1) : 0
-        }));
-      } else {
-        // Fallback to local delete
-        setReviews(prev => prev.filter(review => review.id !== reviewId));
+      } catch (apiError) {
+        // Demo mode - update in localStorage
+        await updateLocalStorageAfterDelete(reviewId);
       }
     } catch (err) {
       console.error('Error deleting review:', err);
+      setError('Failed to delete review');
     }
+  };
+
+  const updateLocalStorageAfterDelete = async (reviewId) => {
+    const reviewToDelete = reviews.find(r => r.id === reviewId);
+    
+    // Update care seeker reviews
+    const seekerReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    const updatedSeekerReviews = seekerReviews.filter(review => review.id !== reviewId);
+    localStorage.setItem('careSeekerReviews', JSON.stringify(updatedSeekerReviews));
+
+    // Update care provider reviews
+    const providerReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
+    const updatedProviderReviews = providerReviews.filter(review => review.id !== reviewId);
+    localStorage.setItem('caregiverReviews', JSON.stringify(updatedProviderReviews));
+
+    // Update bookings to remove review data
+    if (reviewToDelete?.bookingId) {
+      const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+      const updatedSeekerBookings = seekerBookings.map(booking =>
+        booking.id === reviewToDelete.bookingId 
+          ? { 
+              ...booking, 
+              rating: null, 
+              review: null,
+              canReview: true
+            } 
+          : booking
+      );
+      localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
+
+      const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+      const updatedProviderBookings = providerBookings.map(booking =>
+        booking.id === reviewToDelete.bookingId 
+          ? { 
+              ...booking, 
+              rating: null, 
+              review: null
+            } 
+          : booking
+      );
+      localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
+    }
+
+    // Update the component state immediately
+    setReviews(prev => prev.filter(review => review.id !== reviewId));
+    
+    // Update stats
+    const remainingReviews = updatedSeekerReviews.length > 0 ? updatedSeekerReviews : JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    setStats({
+      totalReviews: remainingReviews.length,
+      averageRating: remainingReviews.length > 0 
+        ? remainingReviews.reduce((acc, review) => acc + review.rating, 0) / remainingReviews.length 
+        : 0
+    });
+
+    window.dispatchEvent(new Event('storage'));
+    
+    alert('Review deleted successfully!');
   };
 
   const formatDate = (dateString) => {
@@ -133,24 +324,30 @@ const Reviews = () => {
     });
   };
 
-  const StarRating = ({ rating, size = 'sm' }) => {
+  const StarRating = ({ rating, size = 'sm', interactive = false, onRatingChange }) => {
     const sizeClasses = {
       sm: 'w-4 h-4',
       md: 'w-5 h-5',
-      lg: 'w-6 h-6'
+      lg: 'w-8 h-8'
     };
     
     return (
       <div className="flex items-center space-x-1">
         {[1, 2, 3, 4, 5].map((star) => (
-          <svg 
-            key={star} 
-            className={`${sizeClasses[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-            fill="currentColor" 
-            viewBox="0 0 20 20"
+          <button
+            key={star}
+            type={interactive ? "button" : "div"}
+            onClick={interactive ? () => onRatingChange(star) : undefined}
+            className={interactive ? "focus:outline-none transition-transform hover:scale-110" : ""}
           >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-          </svg>
+            <svg 
+              className={`${sizeClasses[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+              fill="currentColor" 
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+          </button>
         ))}
       </div>
     );
@@ -219,9 +416,9 @@ const Reviews = () => {
                     <span className="text-lg font-bold text-green-900">{stats.averageRating.toFixed(1)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                    <span className="text-sm text-purple-700 font-medium">Recommendations</span>
+                    <span className="text-sm text-purple-700 font-medium">5-Star Reviews</span>
                     <span className="text-lg font-bold text-purple-900">
-                      {reviews.filter(r => r.recommend).length}
+                      {reviews.filter(r => r.rating === 5).length}
                     </span>
                   </div>
                 </div>
@@ -278,37 +475,23 @@ const Reviews = () => {
                       
                       <p className="text-gray-700 leading-relaxed mb-4">{review.comment}</p>
                       
-                      {/* Review Metadata */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                          {review.recommend && (
-                            <div className="flex items-center space-x-2 text-sm text-green-600">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                              </svg>
-                              <span>Recommends this caregiver</span>
-                            </div>
-                          )}
+                      {/* Action Buttons */}
+                      {review.canEdit && (
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            onClick={() => handleEditReview(review)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                          >
+                            Edit Review
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteReview(review.id)}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors"
+                          >
+                            Delete
+                          </button>
                         </div>
-                        
-                        {/* Action Buttons */}
-                        {review.canEdit && (
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => handleEditReview(review.id)}
-                              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                            >
-                              Edit Review
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteReview(review.id)}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -317,6 +500,71 @@ const Reviews = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Review Modal */}
+      {showEditModal && editingReview && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-900 to-blue-800 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Edit Your Review
+              </h3>
+              <p className="text-gray-600">Update your feedback for {editingReview.caregiverName}</p>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Rating Section */}
+              <div className="text-center">
+                <label className="block text-sm font-medium text-gray-700 mb-4">Your Rating</label>
+                <div className="flex justify-center space-x-2 mb-2">
+                  <StarRating 
+                    rating={editData.rating} 
+                    size="lg" 
+                    interactive={true}
+                    onRatingChange={(rating) => setEditData({...editData, rating})}
+                  />
+                </div>
+                <p className="text-gray-600 text-sm">
+                  {editData.rating}.0 out of 5 stars
+                </p>
+              </div>
+              
+              {/* Comment Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Your Review</label>
+                <textarea 
+                  value={editData.comment}
+                  onChange={(e) => setEditData({...editData, comment: e.target.value})}
+                  rows="5"
+                  placeholder="Share your updated experience with this caregiver..."
+                  className="w-full p-4 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 resize-none"
+                  style={{ minHeight: '120px' }}
+                />
+                <p className="text-gray-500 text-xs mt-2">
+                  {editData.comment.length}/500 characters
+                </p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-8">
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateReview}
+                disabled={!editData.comment.trim()}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              >
+                Update Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

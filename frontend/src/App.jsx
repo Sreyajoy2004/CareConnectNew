@@ -15,6 +15,7 @@ import Reviews from './pages/careprovider/Reviews'
 
 // CareSeeker Pages
 import CareSeekerDashboard from './pages/CareSeekerDashboard'
+import CareSeekerProfile from './pages/careseeker/CareSeekerProfile'
 import SearchCaregivers from './pages/careseeker/SearchCaregivers'
 import CareSeekerBookings from './pages/careseeker/Bookings'
 import CareSeekerReviews from './pages/careseeker/Reviews'
@@ -104,6 +105,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRole="careseeker">
               <CareSeekerDashboard/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/careseeker/profile" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <CareSeekerProfile/>
             </ProtectedRoute>
           } 
         />
