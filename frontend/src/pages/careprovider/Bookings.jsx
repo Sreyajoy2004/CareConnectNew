@@ -15,73 +15,232 @@ const Bookings = () => {
   const [error, setError] = useState('');
   const { user } = useAppContext();
 
-  // Get demo bookings from localStorage with fallback
+  // Get demo bookings from localStorage with fallback - PERFECTLY SYNCED WITH CARE SEEKER
   const getDemoBookings = () => {
     const storedBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
     
     if (storedBookings.length === 0) {
-      // Return demo data if no stored bookings
+      // Create perfectly synchronized demo data that matches care seeker bookings exactly
+      const demoBookings = [
+        // Upcoming Bookings (IDs 1, 2)
+        {
+          id: 1,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 100,
+          status: 'confirmed',
+          address: '123 Main St, Boston, MA',
+          specialRequirements: 'Help with medication at 2 PM',
+          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '14:00',
+          notes: 'Please arrive 10 minutes early',
+          clientId: 'family',
+          caregiverId: 'caregiver1',
+          caregiverName: 'Maria Garcia',
+          canCancel: false
+        },
+        {
+          id: 2,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+          duration: 6,
+          totalAmount: 150,
+          status: 'confirmed',
+          address: '456 Oak Ave, Cambridge, MA',
+          specialRequirements: 'Vegetarian meals only',
+          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '09:00',
+          notes: 'Child has peanut allergy',
+          clientId: 'family',
+          caregiverId: 'caregiver2',
+          caregiverName: 'John Smith',
+          canCancel: false
+        },
+        // Pending Bookings (IDs 3, 4)
+        {
+          id: 3,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Special Needs',
+          startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+          duration: 5,
+          totalAmount: 125,
+          status: 'pending',
+          address: '789 Pine St, Boston, MA',
+          specialRequirements: 'Therapeutic exercises required',
+          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '10:00',
+          notes: 'Session preparation needed',
+          clientId: 'family',
+          caregiverId: 'caregiver3',
+          caregiverName: 'Sarah Johnson',
+          canCancel: false
+        },
+        {
+          id: 4,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+          duration: 3,
+          totalAmount: 75,
+          status: 'pending',
+          address: '321 Elm St, Boston, MA',
+          specialRequirements: 'Light housekeeping',
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '13:00',
+          notes: 'Weekly visit',
+          clientId: 'family',
+          caregiverId: 'caregiver4',
+          caregiverName: 'David Chen',
+          canCancel: false
+        },
+        // Completed Bookings (IDs 5, 6, 7)
+        {
+          id: 5,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(),
+          duration: 8,
+          totalAmount: 200,
+          status: 'completed',
+          address: '654 Maple Ave, Cambridge, MA',
+          specialRequirements: 'Homework assistance',
+          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '08:00',
+          notes: 'Full day care',
+          clientId: 'family',
+          caregiverId: 'caregiver5',
+          caregiverName: 'Lisa Wang',
+          canReview: false,
+          canCancel: false
+        },
+        {
+          id: 6,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+          duration: 6,
+          totalAmount: 150,
+          status: 'completed',
+          address: '987 Cedar Rd, Boston, MA',
+          specialRequirements: 'Physical therapy exercises',
+          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '11:00',
+          notes: 'Therapy session',
+          clientId: 'family',
+          caregiverId: 'caregiver6',
+          caregiverName: 'Robert Brown',
+          rating: 5,
+          review: 'Excellent care provided. Very professional and caring.',
+          canReview: false,
+          canCancel: false
+        },
+        {
+          id: 7,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Special Needs',
+          startTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 120,
+          status: 'completed',
+          address: '147 Walnut St, Boston, MA',
+          specialRequirements: 'Sensory activities',
+          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '15:00',
+          notes: 'Afternoon session',
+          clientId: 'family',
+          caregiverId: 'caregiver7',
+          caregiverName: 'Emily Davis',
+          rating: 4,
+          review: 'Good experience overall. Very patient with special needs.',
+          canReview: false,
+          canCancel: false
+        },
+        // Cancelled Bookings (IDs 8, 9)
+        {
+          id: 8,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+          duration: 5,
+          totalAmount: 125,
+          status: 'cancelled',
+          address: '258 Birch Ln, Cambridge, MA',
+          cancelledBy: 'careprovider',
+          cancellationReason: 'Caregiver emergency',
+          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '10:00',
+          clientId: 'family',
+          caregiverId: 'caregiver8',
+          caregiverName: 'Michael Taylor',
+          canCancel: false
+        },
+        {
+          id: 9,
+          clientName: 'Sarah Family',
+          clientEmail: 'family@careconnect.com',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 100,
+          status: 'cancelled',
+          address: '369 Spruce Dr, Boston, MA',
+          cancelledBy: 'careseeker',
+          cancellationReason: 'Family emergency',
+          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '14:00',
+          clientId: 'family',
+          caregiverId: 'caregiver9',
+          caregiverName: 'Jennifer Lopez',
+          canCancel: false
+        }
+      ];
+
+      // Store demo bookings in localStorage
+      localStorage.setItem('careProviderBookings', JSON.stringify(demoBookings));
+
+      // Categorize the demo bookings
+      const now = new Date();
+      const demoUpcoming = demoBookings.filter(booking => 
+        booking.status === 'confirmed' && new Date(booking.startTime) > now
+      );
+      
+      const demoPending = demoBookings.filter(booking => 
+        booking.status === 'pending'
+      );
+      
+      const demoCompleted = demoBookings.filter(booking => 
+        booking.status === 'completed'
+      );
+      
+      const demoCancelled = demoBookings.filter(booking => 
+        booking.status === 'cancelled'
+      );
+
       return {
-        upcoming: [
-          {
-            id: 1,
-            clientName: 'Emily Johnson',
-            clientEmail: 'emily.johnson@email.com',
-            serviceType: 'Elderly Care',
-            startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-            duration: 4,
-            totalAmount: 100,
-            status: 'confirmed',
-            address: '123 Main St, Boston, MA',
-            specialRequirements: 'Help with medication at 2 PM',
-            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '14:00',
-            notes: 'Please arrive 10 minutes early',
-            clientId: 'client1'
-          }
-        ],
-        pending: [
-          {
-            id: 2,
-            clientName: 'Michael Brown',
-            clientEmail: 'michael.brown@email.com',
-            serviceType: 'Child Care',
-            startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
-            duration: 6,
-            totalAmount: 150,
-            status: 'pending',
-            address: '456 Oak Ave, Cambridge, MA',
-            specialRequirements: 'Vegetarian meals only',
-            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '09:00',
-            notes: 'Child has peanut allergy',
-            clientId: 'client2'
-          }
-        ],
-        completed: [
-          {
-            id: 3,
-            clientName: 'Sarah Wilson',
-            clientEmail: 'sarah.wilson@email.com',
-            serviceType: 'Special Needs',
-            startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-            duration: 5,
-            totalAmount: 125,
-            status: 'completed',
-            address: '789 Pine St, Boston, MA',
-            specialRequirements: 'Therapeutic exercises required',
-            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '10:00',
-            notes: 'Session went very well',
-            clientId: 'client3',
-            rating: 5,
-            review: 'Excellent service, very professional!'
-          }
-        ],
-        cancelled: []
+        upcoming: demoUpcoming,
+        pending: demoPending,
+        completed: demoCompleted,
+        cancelled: demoCancelled
       };
     }
 
@@ -233,13 +392,24 @@ const Bookings = () => {
       
       // Update care provider bookings
       const updatedProviderBookings = providerBookings.map(booking =>
-        booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
+        booking.id === bookingId ? { 
+          ...booking, 
+          status: 'cancelled',
+          cancelledBy: 'careprovider',
+          cancellationReason: 'Not available'
+        } : booking
       );
       localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
       
       // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
-        booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking
+        booking.id === bookingId ? { 
+          ...booking, 
+          status: 'cancelled',
+          cancelledBy: 'careprovider',
+          cancellationReason: 'Not available',
+          canCancel: false
+        } : booking
       );
       localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
       
@@ -286,7 +456,11 @@ const Bookings = () => {
       
       // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
-        booking.id === bookingId ? { ...booking, status: 'completed' } : booking
+        booking.id === bookingId ? { 
+          ...booking, 
+          status: 'completed',
+          canReview: true
+        } : booking
       );
       localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
       
@@ -414,12 +588,20 @@ const Bookings = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-4 mb-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                          {booking.clientName?.split(' ').map(n => n[0]).join('') || 'CC'}
+                          {booking.clientName?.split(' ').map(n => n[0]).join('') || 'SF'}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{booking.clientName || 'Client'}</h3>
+                          <h3 className="font-semibold text-gray-900">{booking.clientName || 'Sarah Family'}</h3>
                           <p className="text-gray-600">{booking.clientEmail}</p>
                           <p className="text-gray-500 text-sm capitalize">{booking.serviceType?.toLowerCase() || 'Care Service'}</p>
+                          {booking.cancelledBy && (
+                            <p className="text-sm text-red-600">
+                              Cancelled by: {booking.cancelledBy === 'careprovider' ? 'You' : 'Client'}
+                            </p>
+                          )}
+                          {booking.cancellationReason && (
+                            <p className="text-sm text-gray-600">Reason: {booking.cancellationReason}</p>
+                          )}
                         </div>
                       </div>
                       

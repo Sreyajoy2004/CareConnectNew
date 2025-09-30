@@ -1,3 +1,4 @@
+// src/pages/careseeker/CareSeekerDashboard.jsx
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../components/careseeker/CareSeekerSidebar';
@@ -16,41 +17,51 @@ const CareSeekerDashboard = () => {
     maxRate: ''
   });
 
-  // Enhanced caregiver data with IDs that match our route structure
+  // Enhanced caregiver data that matches our actual caregiver accounts
   const caregivers = [
     {
-      id: 'caregiver1',
-      name: "Sarah Johnson",
-      careType: "Childcare",
-      specialization: "Infant Care Specialist",
-      rate: 18,
+      id: 'caregiver', // This matches the login ID
+      name: "Maria Caregiver",
+      careType: "Childcare & Elderly Care",
+      specialization: "Infant & Senior Care Specialist",
+      rate: 25,
       rating: 4.8,
-      reviews: 42,
+      reviews: 47,
       experience: "5 years experience",
-      location: "Downtown, NY",
+      location: "Boston, MA",
       availability: "Full-time",
-      image: assets.profile_icon,
       verified: true,
       profileImage: null,
       qualifications: "CPR Certified, Nursing Degree",
-      specialties: ["Newborn Care", "Toddler Care"]
+      specialties: ["Child Care", "Elderly Care"],
+      address: "123 Care Street, Boston, MA 02115",
+      hourlyRate: "$25/hr",
+      bio: "Experienced caregiver with 5+ years in child and elderly care.",
+      memberSince: "Jan 2023",
+      completedJobs: 47,
+      responseRate: 95
     },
     {
-      id: 'caregiver2',
+      id: 'mariagarcia', // This matches the login ID
       name: "Maria Garcia",
       careType: "Elderly Care", 
-      specialization: "Senior Companion",
-      rate: 22,
+      specialization: "Senior Companion & Dementia Care",
+      rate: 28,
       rating: 4.9,
-      reviews: 56,
+      reviews: 63,
       experience: "8 years experience",
-      location: "North District, CHI",
+      location: "Boston, MA",
       availability: "Part-time",
-      image: assets.profile_icon,
       verified: true,
       profileImage: null,
-      qualifications: "Geriatric Care Certified",
-      specialties: ["Dementia Care", "Mobility Assistance"]
+      qualifications: "CPR Certified, Elderly Care Specialist",
+      specialties: ["Elderly Care", "Special Needs", "Dementia Care"],
+      address: "456 Caregiver Ave, Boston, MA 02115",
+      hourlyRate: "$28/hr",
+      bio: "Dedicated caregiver specializing in elderly care with 8 years of experience.",
+      memberSince: "Mar 2022",
+      completedJobs: 63,
+      responseRate: 98
     },
     {
       id: 'caregiver3',
@@ -61,13 +72,18 @@ const CareSeekerDashboard = () => {
       rating: 4.7,
       reviews: 38,
       experience: "6 years experience", 
-      location: "East Side, BOS",
+      location: "Boston, MA",
       availability: "Full-time",
-      image: assets.profile_icon,
       verified: false,
       profileImage: null,
       qualifications: "Early Childhood Education",
-      specialties: ["Homework Assistance", "Child Development"]
+      specialties: ["Homework Assistance", "Child Development"],
+      address: "789 Childcare Lane, Boston, MA 02115",
+      hourlyRate: "$20/hr",
+      bio: "Passionate about child development and early education.",
+      memberSince: "Jun 2023",
+      completedJobs: 38,
+      responseRate: 92
     },
     {
       id: 'caregiver4',
@@ -78,13 +94,18 @@ const CareSeekerDashboard = () => {
       rating: 4.9,
       reviews: 34,
       experience: "10 years experience",
-      location: "West End, SEA",
+      location: "Boston, MA",
       availability: "Full-time",
-      image: assets.profile_icon,
       verified: true,
       profileImage: null,
       qualifications: "Special Needs Certification",
-      specialties: ["Alzheimer Care", "Medication Management"]
+      specialties: ["Alzheimer Care", "Medication Management"],
+      address: "321 Elder Care Road, Boston, MA 02115",
+      hourlyRate: "$25/hr",
+      bio: "Specialized in dementia and Alzheimer's care with extensive experience.",
+      memberSince: "Feb 2022",
+      completedJobs: 34,
+      responseRate: 96
     }
   ];
 
@@ -99,8 +120,8 @@ const CareSeekerDashboard = () => {
     if (!hasActiveFilters) return caregivers; // Show all caregivers when no filters
 
     return caregivers.filter(caregiver => {
-      const matchesCareType = !filters.careType || caregiver.careType === filters.careType;
-      const matchesSpecialization = !filters.specialization || caregiver.specialization === filters.specialization;
+      const matchesCareType = !filters.careType || caregiver.careType.includes(filters.careType);
+      const matchesSpecialization = !filters.specialization || caregiver.specialization.includes(filters.specialization);
       const matchesLocation = !filters.location || caregiver.location.toLowerCase().includes(filters.location.toLowerCase());
       const matchesRate = !filters.maxRate || caregiver.rate <= parseInt(filters.maxRate);
       

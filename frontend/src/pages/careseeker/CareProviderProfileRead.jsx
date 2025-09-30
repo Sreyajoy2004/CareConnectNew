@@ -20,16 +20,16 @@ const CareProviderProfileRead = () => {
     serviceType: 'childcare'
   });
 
-  // Dummy caregiver data for testing
-  const dummyCaregivers = {
-    'caregiver1': {
-      id: 'caregiver1',
-      name: "Sarah Johnson",
-      email: "sarah.johnson@careconnect.com",
+  // Synchronized caregiver data that matches dashboard data
+  const synchronizedCaregivers = {
+    'caregiver': {
+      id: 'caregiver',
+      name: "Maria Caregiver",
+      email: "caregiver@careconnect.com",
       phone: "+1 (555) 123-4567",
       address: "123 Care Street, Boston, MA 02115",
       bio: "Experienced caregiver with 5+ years in child and elderly care. Certified in CPR and First Aid. Passionate about providing compassionate care and building strong relationships with families.",
-      specialties: ["Infant Care", "Toddler Care", "Elderly Companion", "Special Needs"],
+      specialties: ["Child Care", "Elderly Care", "Special Needs"],
       experience: "5 years",
       hourlyRate: "$25/hr",
       availability: "Full-time",
@@ -42,47 +42,47 @@ const CareProviderProfileRead = () => {
       rating: 4.8,
       reviews: 42,
       profileImage: null,
-      careType: "Childcare",
-      specialization: "Infant Care Specialist"
+      careType: "Childcare & Elderly Care",
+      specialization: "Infant & Senior Care Specialist"
     },
-    'caregiver2': {
-      id: 'caregiver2',
+    'mariagarcia': {
+      id: 'mariagarcia',
       name: "Maria Garcia",
-      email: "maria.garcia@careconnect.com",
+      email: "mariagarcia@careconnect.com",
       phone: "+1 (555) 987-6543",
-      address: "456 Elder Care Ave, Chicago, IL 60601",
-      bio: "Compassionate elderly care specialist with 8 years experience in dementia and mobility care. Dedicated to improving quality of life for seniors.",
-      specialties: ["Dementia Care", "Mobility Assistance", "Medication Management", "Companionship"],
+      address: "456 Caregiver Ave, Boston, MA 02115",
+      bio: "Dedicated caregiver specializing in elderly care with 8 years of experience. Compassionate and patient with excellent communication skills.",
+      specialties: ["Elderly Care", "Special Needs", "Dementia Care"],
       experience: "8 years",
-      hourlyRate: "$22/hr",
+      hourlyRate: "$28/hr",
       availability: "Part-time",
-      qualifications: "Geriatric Care Certified, Nursing Assistant, Dementia Specialist",
-      mainSpecialty: "Elderlycare",
-      certifications: ["Geriatric Care Certificate.pdf", "First Aid Certificate.pdf", "Dementia Care Certification.pdf"],
+      qualifications: "CPR Certified, Elderly Care Specialist",
+      mainSpecialty: "Elderly Care",
+      certifications: ["CPR Certificate.pdf", "Elderly Care Certification.pdf"],
       memberSince: "Mar 2022",
-      completedJobs: 56,
+      completedJobs: 63,
       responseRate: 98,
       rating: 4.9,
-      reviews: 56,
+      reviews: 63,
       profileImage: null,
       careType: "Elderly Care",
-      specialization: "Senior Companion"
+      specialization: "Senior Companion & Dementia Care"
     },
     'caregiver3': {
       id: 'caregiver3',
       name: "David Chen",
       email: "david.chen@careconnect.com",
       phone: "+1 (555) 456-7890",
-      address: "789 Family Road, Boston, MA 02118",
-      bio: "Dedicated childcare provider specializing in toddler care and early childhood development. Creative and engaging activities for children.",
-      specialties: ["Toddler Care", "Early Education", "Homework Assistance", "Child Development"],
+      address: "789 Childcare Lane, Boston, MA 02115",
+      bio: "Passionate about child development and early education. Creative and engaging activities for children with 6 years of experience.",
+      specialties: ["Homework Assistance", "Child Development"],
       experience: "6 years",
       hourlyRate: "$20/hr",
       availability: "Full-time",
-      qualifications: "Early Childhood Education, CPR Certified, Child Development Specialist",
+      qualifications: "Early Childhood Education",
       mainSpecialty: "Childcare",
       certifications: ["Early Childhood Certificate.pdf", "CPR Certificate.pdf", "Child Development Certification.pdf"],
-      memberSince: "Aug 2023",
+      memberSince: "Jun 2023",
       completedJobs: 38,
       responseRate: 92,
       rating: 4.7,
@@ -96,18 +96,18 @@ const CareProviderProfileRead = () => {
       name: "Lisa Wang",
       email: "lisa.wang@careconnect.com",
       phone: "+1 (555) 234-5678",
-      address: "321 Senior Lane, Seattle, WA 98101",
-      bio: "Special needs care expert with 10 years experience in various care environments. Patient and understanding with excellent communication skills.",
-      specialties: ["Special Needs", "Therapeutic Care", "Behavioral Support", "Elderly Care"],
+      address: "321 Elder Care Road, Boston, MA 02115",
+      bio: "Specialized in dementia and Alzheimer's care with extensive experience. Patient and understanding with excellent communication skills.",
+      specialties: ["Alzheimer Care", "Medication Management"],
       experience: "10 years",
       hourlyRate: "$25/hr",
       availability: "Full-time",
-      qualifications: "Special Needs Certification, Nursing Degree, Therapeutic Care Specialist",
+      qualifications: "Special Needs Certification",
       mainSpecialty: "Special Needs",
       certifications: ["Special Needs Certificate.pdf", "Therapeutic Care Certificate.pdf", "Nursing License.pdf"],
-      memberSince: "Jun 2021",
+      memberSince: "Feb 2022",
       completedJobs: 34,
-      responseRate: 94,
+      responseRate: 96,
       rating: 4.9,
       reviews: 34,
       profileImage: null,
@@ -125,7 +125,7 @@ const CareProviderProfileRead = () => {
     }
   }, [user]);
 
-  // Fetch caregiver profile data (only for care seekers) with dummy data fallback
+  // Fetch caregiver profile data (only for care seekers) with synchronized data fallback
   useEffect(() => {
     if (user?.role !== 'careseeker') return;
 
@@ -149,13 +149,13 @@ const CareProviderProfileRead = () => {
             return;
           }
         } catch (apiError) {
-          console.log('API not available, using dummy data');
+          console.log('API not available, using synchronized data');
         }
         
-        // Fallback to dummy data if API fails
-        if (dummyCaregivers[id]) {
+        // Fallback to synchronized data if API fails
+        if (synchronizedCaregivers[id]) {
           setTimeout(() => {
-            setCaregiver(dummyCaregivers[id]);
+            setCaregiver(synchronizedCaregivers[id]);
             setLoading(false);
           }, 500); // Simulate API delay
         } else {
@@ -164,9 +164,9 @@ const CareProviderProfileRead = () => {
         }
         
       } catch (err) {
-        // Final fallback to dummy data
-        if (dummyCaregivers[id]) {
-          setCaregiver(dummyCaregivers[id]);
+        // Final fallback to synchronized data
+        if (synchronizedCaregivers[id]) {
+          setCaregiver(synchronizedCaregivers[id]);
           setError('');
         } else {
           setError('Failed to load caregiver profile');
@@ -249,7 +249,8 @@ const CareProviderProfileRead = () => {
         time: bookingDetails.time,
         notes: bookingDetails.notes,
         clientName: user.name,
-        clientEmail: user.email
+        clientEmail: user.email,
+        clientId: user.id
       };
 
       // Save to localStorage for care seeker
@@ -262,7 +263,7 @@ const CareProviderProfileRead = () => {
       const updatedProviderBookings = [newBooking, ...existingProviderBookings];
       localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
 
-      alert('DEMO: Booking request sent successfully! The caregiver will confirm soon.');
+      alert('Booking request sent successfully! The caregiver will confirm soon.');
       setShowBookingModal(false);
       setBookingDetails({ 
         date: '', 
@@ -357,7 +358,7 @@ const CareProviderProfileRead = () => {
             Go Back
           </button>
           <button 
-            onClick={() => navigate('/search')}
+            onClick={() => navigate('/careseeker/dashboard')}
             className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
           >
             Browse Caregivers
@@ -376,14 +377,14 @@ const CareProviderProfileRead = () => {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Demo Mode: Using sample data. Real data will load when backend is connected.</span>
+            <span>Demo Mode: Real-time synchronization with caregiver profiles.</span>
           </div>
         </div>
 
         {/* Header with Back Button */}
         <div className="flex justify-between items-center mb-8">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/careseeker/dashboard')}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

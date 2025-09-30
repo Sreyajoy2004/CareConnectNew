@@ -41,6 +41,26 @@ export const AppContextProvider = ({ children }) => {
         responseRate: 95
       }
     },
+    'mariagarcia@careconnect.com': { 
+      name: 'Maria Garcia', 
+      role: 'careprovider',
+      password: 'demo123',
+      profileData: {
+        phone: "+1 (555) 987-6543",
+        address: "456 Caregiver Ave, Boston, MA 02115",
+        bio: "Dedicated caregiver specializing in elderly care with 8 years of experience.",
+        specialties: ["Elderly Care", "Special Needs"],
+        experience: "8 years",
+        hourlyRate: "$28/hr",
+        availability: "Part-time",
+        qualifications: "CPR Certified, Elderly Care Specialist",
+        mainSpecialty: "Elderly Care",
+        certifications: ["CPR Certificate.pdf", "Elderly Care Certification.pdf"],
+        memberSince: "Mar 2022",
+        completedJobs: 63,
+        responseRate: 98
+      }
+    },
     'admin@careconnect.com': { 
       name: 'Admin User',
       role: 'admin', 

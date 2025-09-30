@@ -4,7 +4,7 @@ import CareProviderSidebar from '../../components/careprovider/CareProviderSideb
 import { useAppContext } from '../../context/AppContext';
 
 const Profile = () => {
-  const { user } = useAppContext();
+  const { user, updateUserProfile } = useAppContext();
   const [isEditing, setIsEditing] = useState(false);
   const [showSpecialtyInput, setShowSpecialtyInput] = useState(false);
   const [newSpecialty, setNewSpecialty] = useState('');
@@ -12,10 +12,10 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const certificateInputRef = useRef(null);
 
-  // Initialize profile data from user context or registration data
+  // Initialize profile data from user context
   const [profileData, setProfileData] = useState({
-    name: user?.name || "Sarah Johnson",
-    email: user?.email || "sarah.johnson@careconnect.com",
+    name: user?.name || "Caregiver",
+    email: user?.email || "caregiver@careconnect.com",
     phone: user?.profileData?.phone || "+1 (555) 123-4567",
     address: user?.profileData?.address || "123 Care Street, Boston, MA 02115",
     bio: user?.profileData?.bio || "Experienced caregiver with 5+ years in child and elderly care. Certified in CPR and First Aid.",
@@ -26,30 +26,26 @@ const Profile = () => {
     qualifications: user?.profileData?.qualifications || "CPR Certified, Nursing Degree",
     mainSpecialty: user?.profileData?.mainSpecialty || "Childcare",
     certifications: user?.profileData?.certifications || ["CPR Certificate.pdf", "First Aid Certificate.pdf"],
-    memberSince: user?.profileData?.memberSince || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+    memberSince: user?.profileData?.memberSince || "Jan 2023",
     completedJobs: user?.profileData?.completedJobs || 47,
     responseRate: user?.profileData?.responseRate || 95,
     profileImage: user?.profileData?.profileImage || null
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    setNotificationSent(true);
-    
-    // Notify admin about profile changes
-    notifyAdminAboutChanges();
-    
-    // Here you would typically send the updated data to your backend
-    console.log('Updated profile data:', profileData);
-    
-    // Reset notification after 3 seconds
-    setTimeout(() => setNotificationSent(false), 3000);
-  };
-
-  const notifyAdminAboutChanges = () => {
-    // This would be an API call to notify admin in a real application
-    console.log('Admin notified about profile changes for verification');
-    // Example: axios.post('/api/admin/notify-profile-update', { userId: user.id, updates: profileData });
+  const handleSave = async () => {
+    try {
+      const success = await updateUserProfile(profileData);
+      
+      if (success) {
+        setIsEditing(false);
+        setNotificationSent(true);
+        
+        // Reset notification after 3 seconds
+        setTimeout(() => setNotificationSent(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
   };
 
   const handleAddSpecialty = () => {
@@ -98,7 +94,7 @@ const Profile = () => {
   };
 
   const getInitials = (name) => {
-    if (!name) return 'UP';
+    if (!name) return 'CG';
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -148,7 +144,7 @@ const Profile = () => {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Changes saved! Admin has been notified for verification.</span>
+                <span>Profile updated successfully!</span>
               </div>
             </div>
           )}

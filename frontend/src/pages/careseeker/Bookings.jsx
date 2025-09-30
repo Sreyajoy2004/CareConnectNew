@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
 import { useAppContext } from '../../context/AppContext';
 
-const Bookings = () => {
+const CareSeekerBookings = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [bookings, setBookings] = useState({
     upcoming: [],
@@ -23,7 +23,7 @@ const Bookings = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
 
-  // Mock data with localStorage integration
+  // Enhanced demo data with more bookings for testing
   const getMockBookings = () => {
     // Get bookings from localStorage for demo
     const storedBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
@@ -47,84 +47,203 @@ const Bookings = () => {
       booking.status === 'cancelled'
     );
 
-    // Add static demo bookings if no stored bookings
+    // Enhanced demo data with more bookings for testing all scenarios
     if (storedBookings.length === 0) {
+      const demoBookings = [
+        // Upcoming Bookings (2 bookings)
+        {
+          id: 1,
+          caregiverId: 'caregiver1',
+          caregiverName: 'Maria Garcia',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 100,
+          status: 'confirmed',
+          address: '123 Main St, Boston, MA',
+          specialRequirements: 'Help with medication at 2 PM',
+          canCancel: true,
+          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '14:00',
+          notes: 'Please arrive 10 minutes early'
+        },
+        {
+          id: 2,
+          caregiverId: 'caregiver2',
+          caregiverName: 'John Smith',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+          duration: 6,
+          totalAmount: 150,
+          status: 'confirmed',
+          address: '456 Oak Ave, Cambridge, MA',
+          specialRequirements: 'Vegetarian meals only',
+          canCancel: true,
+          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '09:00',
+          notes: 'Child has peanut allergy'
+        },
+        // Pending Bookings (2 bookings)
+        {
+          id: 3,
+          caregiverId: 'caregiver3',
+          caregiverName: 'Sarah Johnson',
+          serviceType: 'Special Needs',
+          startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+          duration: 5,
+          totalAmount: 125,
+          status: 'pending',
+          address: '789 Pine St, Boston, MA',
+          specialRequirements: 'Therapeutic exercises required',
+          canCancel: true,
+          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '10:00',
+          notes: 'Session preparation needed'
+        },
+        {
+          id: 4,
+          caregiverId: 'caregiver4',
+          caregiverName: 'David Chen',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+          duration: 3,
+          totalAmount: 75,
+          status: 'pending',
+          address: '321 Elm St, Boston, MA',
+          specialRequirements: 'Light housekeeping',
+          canCancel: true,
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '13:00',
+          notes: 'Weekly visit'
+        },
+        // Completed Bookings (3 bookings - with different review statuses)
+        {
+          id: 5,
+          caregiverId: 'caregiver5',
+          caregiverName: 'Lisa Wang',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(),
+          duration: 8,
+          totalAmount: 200,
+          status: 'completed',
+          address: '654 Maple Ave, Cambridge, MA',
+          specialRequirements: 'Homework assistance',
+          canReview: true,
+          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '08:00',
+          notes: 'Full day care'
+        },
+        {
+          id: 6,
+          caregiverId: 'caregiver6',
+          caregiverName: 'Robert Brown',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+          duration: 6,
+          totalAmount: 150,
+          status: 'completed',
+          address: '987 Cedar Rd, Boston, MA',
+          specialRequirements: 'Physical therapy exercises',
+          canReview: false,
+          rating: 5,
+          review: 'Excellent care provided. Very professional and caring.',
+          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '11:00',
+          notes: 'Therapy session'
+        },
+        {
+          id: 7,
+          caregiverId: 'caregiver7',
+          caregiverName: 'Emily Davis',
+          serviceType: 'Special Needs',
+          startTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 120,
+          status: 'completed',
+          address: '147 Walnut St, Boston, MA',
+          specialRequirements: 'Sensory activities',
+          canReview: false,
+          rating: 4,
+          review: 'Good experience overall. Very patient with special needs.',
+          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '15:00',
+          notes: 'Afternoon session'
+        },
+        // Cancelled Bookings (2 bookings - cancelled by different parties)
+        {
+          id: 8,
+          caregiverId: 'caregiver8',
+          caregiverName: 'Michael Taylor',
+          serviceType: 'Child Care',
+          startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+          duration: 5,
+          totalAmount: 125,
+          status: 'cancelled',
+          address: '258 Birch Ln, Cambridge, MA',
+          cancelledBy: 'careprovider',
+          cancellationReason: 'Caregiver emergency',
+          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '10:00'
+        },
+        {
+          id: 9,
+          caregiverId: 'caregiver9',
+          caregiverName: 'Jennifer Lopez',
+          serviceType: 'Elderly Care',
+          startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+          duration: 4,
+          totalAmount: 100,
+          status: 'cancelled',
+          address: '369 Spruce Dr, Boston, MA',
+          cancelledBy: 'careseeker',
+          cancellationReason: 'Family emergency',
+          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          time: '14:00'
+        }
+      ];
+
+      // Store demo bookings in localStorage
+      localStorage.setItem('careSeekerBookings', JSON.stringify(demoBookings));
+      
+      // Also store in careProviderBookings for synchronization
+      const providerBookings = demoBookings.map(booking => ({
+        ...booking,
+        careSeekerName: user?.name || 'Care Seeker',
+        careSeekerId: user?.id || 'careseeker1'
+      }));
+      localStorage.setItem('careProviderBookings', JSON.stringify(providerBookings));
+
+      // Categorize the demo bookings
+      const demoUpcoming = demoBookings.filter(booking => 
+        booking.status === 'confirmed' && new Date(booking.startTime) > now
+      );
+      
+      const demoPending = demoBookings.filter(booking => 
+        booking.status === 'pending'
+      );
+      
+      const demoCompleted = demoBookings.filter(booking => 
+        booking.status === 'completed'
+      );
+      
+      const demoCancelled = demoBookings.filter(booking => 
+        booking.status === 'cancelled'
+      );
+
       return {
-        upcoming: [
-          {
-            id: 1,
-            caregiverId: 'caregiver1',
-            caregiverName: 'Maria Garcia',
-            serviceType: 'Elderly Care',
-            startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-            duration: 4,
-            totalAmount: 100,
-            status: 'confirmed',
-            address: '123 Main St, Boston, MA',
-            specialRequirements: 'Help with medication at 2 PM',
-            canCancel: true,
-            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '14:00',
-            notes: 'Please arrive 10 minutes early'
-          }
-        ],
-        pending: [
-          {
-            id: 2,
-            caregiverId: 'caregiver2',
-            caregiverName: 'John Smith',
-            serviceType: 'Child Care',
-            startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
-            duration: 6,
-            totalAmount: 150,
-            status: 'pending',
-            address: '456 Oak Ave, Cambridge, MA',
-            specialRequirements: 'Vegetarian meals only',
-            canCancel: true,
-            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '09:00',
-            notes: 'Child has peanut allergy'
-          }
-        ],
-        completed: [
-          {
-            id: 3,
-            caregiverId: 'caregiver3',
-            caregiverName: 'Sarah Johnson',
-            serviceType: 'Special Needs',
-            startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-            duration: 5,
-            totalAmount: 125,
-            status: 'completed',
-            address: '789 Pine St, Boston, MA',
-            specialRequirements: 'Therapeutic exercises required',
-            canReview: true,
-            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '10:00',
-            notes: 'Session went very well'
-          }
-        ],
-        cancelled: [
-          {
-            id: 4,
-            caregiverId: 'caregiver4',
-            caregiverName: 'David Chen',
-            serviceType: 'Elderly Care',
-            startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-            duration: 5,
-            totalAmount: 125,
-            status: 'cancelled',
-            address: '789 Pine St, Boston, MA',
-            cancelledBy: 'careprovider',
-            cancellationReason: 'Caregiver emergency',
-            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            time: '10:00'
-          }
-        ]
+        upcoming: demoUpcoming,
+        pending: demoPending,
+        completed: demoCompleted,
+        cancelled: demoCancelled
       };
     }
 
@@ -216,7 +335,8 @@ const Bookings = () => {
               ...booking, 
               status: 'cancelled', 
               cancelledBy: 'careseeker',
-              cancellationReason: 'Changed plans'
+              cancellationReason: 'Changed plans',
+              canCancel: false
             } 
           : booking
       );
@@ -293,6 +413,9 @@ const Bookings = () => {
   };
 
   const updateLocalStorageAfterReview = async () => {
+    // Create a consistent review ID based on booking ID
+    const reviewId = parseInt(selectedBooking.id) * 10; // Create unique but consistent ID
+    
     // Update care seeker bookings
     const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
     const updatedSeekerBookings = seekerBookings.map(booking =>
@@ -320,10 +443,10 @@ const Bookings = () => {
     );
     localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
 
-    // Update reviews in localStorage
+    // Update reviews in localStorage - Use consistent ID structure
     const existingReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
     const newReview = {
-      id: Date.now(),
+      id: reviewId, // Use consistent ID instead of Date.now()
       bookingId: selectedBooking.id,
       caregiverId: selectedBooking.caregiverId,
       caregiverName: selectedBooking.caregiverName,
@@ -331,14 +454,22 @@ const Bookings = () => {
       rating: reviewData.rating,
       comment: reviewData.comment,
       recommend: true,
-      date: new Date().toISOString(),
+      createdAt: new Date().toISOString(), // Use createdAt instead of date
+      canEdit: true, // Add canEdit flag
       clientName: user?.name || 'Care Seeker'
     };
-    localStorage.setItem('careSeekerReviews', JSON.stringify([...existingReviews, newReview]));
+    
+    // Remove any existing review for this booking and add new one
+    const filteredReviews = existingReviews.filter(review => review.bookingId !== selectedBooking.id);
+    localStorage.setItem('careSeekerReviews', JSON.stringify([...filteredReviews, newReview]));
 
     // Also update caregiver reviews
     const caregiverReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
-    localStorage.setItem('caregiverReviews', JSON.stringify([...caregiverReviews, newReview]));
+    const filteredCaregiverReviews = caregiverReviews.filter(review => review.bookingId !== selectedBooking.id);
+    localStorage.setItem('caregiverReviews', JSON.stringify([...filteredCaregiverReviews, {
+      ...newReview,
+      client: { name: user?.name || 'Care Seeker' }
+    }]));
 
     setShowReviewModal(false);
     setSelectedBooking(null);
@@ -654,4 +785,4 @@ const Bookings = () => {
   );
 };
 
-export default Bookings;
+export default CareSeekerBookings;

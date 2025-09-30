@@ -14,9 +14,117 @@ const Reviews = () => {
   const [error, setError] = useState('');
   const { user } = useAppContext();
 
-  // Fetch reviews from backend
+  // Get reviews from localStorage that match this caregiver
+  const getDemoReviews = () => {
+    // Get reviews from localStorage (caregiver reviews)
+    const storedReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
+    
+    // Also check bookings for ratings (fallback)
+    const storedBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+    const bookingsWithRatings = storedBookings.filter(booking => 
+      booking.status === 'completed' && booking.rating
+    );
+
+    // Combine both sources
+    let allReviews = [...storedReviews];
+    
+    // Add reviews from bookings if not already in reviews
+    bookingsWithRatings.forEach(booking => {
+      if (!allReviews.find(r => r.bookingId === booking.id)) {
+        allReviews.push({
+          id: `booking-${booking.id}`,
+          bookingId: booking.id,
+          client: { name: booking.clientName || 'Client' },
+          caregiverId: booking.caregiverId,
+          caregiverName: booking.caregiverName,
+          serviceType: booking.serviceType,
+          rating: booking.rating,
+          comment: booking.review || 'No comment provided',
+          createdAt: booking.startTime || new Date().toISOString(),
+          recommend: true
+        });
+      }
+    });
+
+    // Filter reviews for this specific caregiver
+    const caregiverReviews = allReviews.filter(review => 
+      review.caregiverId === user?.id || review.caregiverName === user?.name
+    );
+
+    // Calculate stats
+    const totalReviews = caregiverReviews.length;
+    const averageRating = totalReviews > 0 
+      ? caregiverReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+      : 4.8; // Default demo rating
+
+    const ratingBreakdown = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+    caregiverReviews.forEach(review => {
+      if (review.rating >= 1 && review.rating <= 5) {
+        ratingBreakdown[review.rating]++;
+      }
+    });
+
+    // Add demo reviews if no reviews exist
+    if (caregiverReviews.length === 0) {
+      const demoReviews = [
+        {
+          id: 1,
+          bookingId: 'demo-1',
+          client: { name: 'Emily Johnson' },
+          caregiverId: user?.id,
+          caregiverName: user?.name,
+          serviceType: 'Elderly Care',
+          rating: 5,
+          comment: 'Maria was absolutely wonderful with my elderly mother. She was patient, professional, and went above and beyond her duties.',
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          recommend: true
+        },
+        {
+          id: 2,
+          bookingId: 'demo-2',
+          client: { name: 'Robert Chen' },
+          caregiverId: user?.id,
+          caregiverName: user?.name,
+          serviceType: 'Child Care',
+          rating: 4,
+          comment: 'Great with kids! My children really enjoyed their time. Very reliable and professional.',
+          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          recommend: true
+        }
+      ];
+      
+      // Store demo reviews
+      localStorage.setItem('caregiverReviews', JSON.stringify([...storedReviews, ...demoReviews]));
+      return {
+        reviews: demoReviews,
+        stats: {
+          averageRating: 4.5,
+          totalReviews: 2,
+          ratingBreakdown: {5: 1, 4: 1, 3: 0, 2: 0, 1: 0}
+        }
+      };
+    }
+
+    return {
+      reviews: caregiverReviews,
+      stats: {
+        averageRating,
+        totalReviews,
+        ratingBreakdown
+      }
+    };
+  };
+
   useEffect(() => {
     fetchReviews();
+    
+    // Listen for storage changes to update reviews in real-time
+    const handleStorageChange = () => {
+      fetchReviews();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const fetchReviews = async () => {
@@ -24,23 +132,31 @@ const Reviews = () => {
       setLoading(true);
       setError('');
       
-      // Simulate API call - replace with actual backend endpoint
-      const response = await fetch(`/api/careprovider/${user?.id}/reviews`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      try {
+        const response = await fetch(`/api/careprovider/${user?.id}/reviews`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setReviews(data.reviews || []);
+          setStats(data.stats || {
+            averageRating: 0,
+            totalReviews: 0,
+            ratingBreakdown: {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+          });
+        } else {
+          throw new Error('API not available');
         }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch reviews');
-      
-      const data = await response.json();
-      setReviews(data.reviews || []);
-      setStats(data.stats || {
-        averageRating: 0,
-        totalReviews: 0,
-        ratingBreakdown: {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
-      });
+      } catch (apiError) {
+        // Fallback to demo data with localStorage integration
+        const demoData = getDemoReviews();
+        setReviews(demoData.reviews);
+        setStats(demoData.stats);
+      }
     } catch (err) {
       setError('Failed to load reviews');
       console.error('Error fetching reviews:', err);
@@ -129,6 +245,16 @@ const Reviews = () => {
               </button>
             </div>
           )}
+
+          {/* Demo Mode Indicator */}
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Demo Mode: Reviews are synchronized with care seeker reviews in real-time.</span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Stats Card */}

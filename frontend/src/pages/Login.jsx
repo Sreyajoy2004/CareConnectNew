@@ -82,6 +82,11 @@ const Login = () => {
         email: 'family@careconnect.com',
         password: 'demo123'
       });
+    } else if (type === 'mariagarcia') {
+      setFormData({
+        email: 'mariagarcia@careconnect.com',
+        password: 'demo123'
+      });
     }
     if (error) setError('');
   };
@@ -101,6 +106,12 @@ const Login = () => {
           className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
         >
           Fill Family
+        </button>
+        <button 
+          onClick={() => fillDemoCredentials('mariagarcia')}
+          className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+        >
+          Fill Maria Garcia
         </button>
       </div>
 
