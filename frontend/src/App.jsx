@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppContextProvider, useAppContext } from './context/AppContext'
@@ -10,7 +11,6 @@ import Register from './pages/Register'
 import CareProviderDashboard from './pages/CareProviderDashboard'
 import Profile from './pages/careprovider/Profile'
 import Bookings from './pages/careprovider/Bookings'
-import Payments from './pages/careprovider/Payments'
 import Reviews from './pages/careprovider/Reviews'
 
 // CareSeeker Pages
@@ -21,7 +21,15 @@ import CareSeekerReviews from './pages/careseeker/Reviews'
 import CareProviderProfileRead from './pages/careseeker/CareProviderProfileRead'
 
 // Import CareSeekerBookings with proper named import
-import  CareSeekerBookings  from './pages/careseeker/Bookings'
+import CareSeekerBookings from './pages/careseeker/Bookings'
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard'
+import UserManagement from './pages/admin/UserManagement'
+import CaregiverManagement from './pages/admin/CaregiverManagement'
+import PendingVerification from './pages/admin/PendingVerification'
+import BookingOversight from './pages/admin/BookingOversight'
+import Reports from './pages/admin/Reports'
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -85,14 +93,6 @@ const AppContent = () => {
           } 
         />
         <Route 
-          path="/careprovider/payments" 
-          element={
-            <ProtectedRoute requiredRole="careprovider">
-              <Payments/>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/careprovider/reviews" 
           element={
             <ProtectedRoute requiredRole="careprovider">
@@ -143,6 +143,56 @@ const AppContent = () => {
           } 
         />
         
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDashboard/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <UserManagement/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/caregivers" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <CaregiverManagement/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/caregivers/unverified" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <PendingVerification/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/bookings" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <BookingOversight/>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/reports" 
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Reports/>
+            </ProtectedRoute>
+          } 
+        />
+        
         {/* Public Caregiver Profile View (accessible to both roles) */}
         <Route 
           path="/careprovider/:id" 
@@ -170,4 +220,4 @@ const App = () => {
   );
 };
 
-export default App
+export default App;

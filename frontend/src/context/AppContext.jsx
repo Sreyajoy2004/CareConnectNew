@@ -31,7 +31,6 @@ export const AppContextProvider = ({ children }) => {
         bio: "Experienced caregiver with 5+ years in child and elderly care.",
         specialties: ["Child Care", "Elderly Care"],
         experience: "5 years",
-        hourlyRate: "$25/hr",
         availability: "Full-time",
         qualifications: "CPR Certified, Nursing Degree",
         mainSpecialty: "Childcare",
@@ -51,7 +50,6 @@ export const AppContextProvider = ({ children }) => {
         bio: "Dedicated caregiver specializing in elderly care with 8 years of experience.",
         specialties: ["Elderly Care", "Special Needs"],
         experience: "8 years",
-        hourlyRate: "$28/hr",
         availability: "Part-time",
         qualifications: "CPR Certified, Elderly Care Specialist",
         mainSpecialty: "Elderly Care",
@@ -140,7 +138,6 @@ export const AppContextProvider = ({ children }) => {
           experience: formData.experience ? `${formData.experience} years` : '0 years',
           qualifications: formData.qualifications || '',
           specialties: formData.specialties || [],
-          hourlyRate: formData.hourlyRate ? `$${formData.hourlyRate}/hr` : '$0/hr',
           availability: formData.availability || 'Flexible',
           bio: formData.bio || '',
           mainSpecialty: formData.mainSpecialty || '',
@@ -243,6 +240,18 @@ export const AppContextProvider = ({ children }) => {
     console.log(`Caregiver ${userId} verified by admin`);
   };
 
+  // Admin function to delete user
+  const deleteUser = (userId) => {
+    // In real app, this would make an API call to delete user
+    console.log(`User ${userId} deleted by admin`);
+  };
+
+  // Admin function to flag/unflag user
+  const flagUser = (userId, flagged) => {
+    // In real app, this would update user status in backend
+    console.log(`User ${userId} ${flagged ? 'flagged' : 'unflagged'} by admin`);
+  };
+
   // Logout function
   const logout = () => {
     setUser(null);
@@ -285,6 +294,8 @@ export const AppContextProvider = ({ children }) => {
     updateUserProfile,
     updateProfile,
     verifyCaregiver,
+    deleteUser,
+    flagUser,
     notifyAdmin
   };
 
