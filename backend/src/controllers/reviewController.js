@@ -1,26 +1,25 @@
 import pool from "../config/db.js";
 
-// Add a review (seeker only, after completed booking)
+// ================================
+// Seeker adds review (only for completed bookings)
+// ================================
 export async function addReview(req, res) {
   try {
-    const { bookingId, rating, comment } = req.body;
+    const { bookingId, resourceId, rating, comment } = req.body;
 
-    // 1. Validate booking ownership & status
-    const [rows] = await pool.query(
+    // Check booking status
+    const [bookings] = await pool.query(
       "SELECT * FROM bookings WHERE id = ? AND seeker_id = ? AND status = 'completed'",
       [bookingId, req.user.userId]
     );
 
-    if (rows.length === 0) {
-      return res.status(400).json({ error: "Invalid booking or booking not completed" });
+    if (bookings.length === 0) {
+      return res.status(400).json({ error: "You can only review completed bookings" });
     }
 
-    const booking = rows[0];
-
-    // 2. Insert review
     const [result] = await pool.query(
-      "INSERT INTO reviews (booking_id, reviewer_id, resource_id, rating, comment) VALUES (?, ?, ?, ?, ?)",
-      [bookingId, req.user.userId, booking.resource_id, rating, comment]
+      "INSERT INTO reviews (booking_id, resource_id, seeker_id, rating, comment) VALUES (?, ?, ?, ?, ?)",
+      [bookingId, resourceId, req.user.userId, rating, comment]
     );
 
     res.status(201).json({ message: "Review added", reviewId: result.insertId });
@@ -30,15 +29,17 @@ export async function addReview(req, res) {
   }
 }
 
-// Get all reviews for a caregiver/resource
+// ================================
+// Public: get all reviews for a caregiver/resource
+// ================================
 export async function getReviews(req, res) {
   try {
-    const resourceId = req.params.resourceId;
+    const { resourceId } = req.params;
 
     const [rows] = await pool.query(
-      `SELECT r.*, u.name AS reviewer_name
+      `SELECT r.id, r.rating, r.comment, r.created_at, u.name AS seeker_name
        FROM reviews r
-       JOIN users u ON r.reviewer_id = u.user_id
+       JOIN users u ON r.seeker_id = u.user_id
        WHERE r.resource_id = ?`,
       [resourceId]
     );
@@ -50,10 +51,12 @@ export async function getReviews(req, res) {
   }
 }
 
-// Get average rating for a caregiver/resource
+// ================================
+// Public: get average rating for a caregiver/resource
+// ================================
 export async function getAverageRating(req, res) {
   try {
-    const resourceId = req.params.resourceId;
+    const { resourceId } = req.params;
 
     const [rows] = await pool.query(
       "SELECT AVG(rating) AS averageRating, COUNT(*) AS totalReviews FROM reviews WHERE resource_id = ?",
@@ -63,6 +66,6 @@ export async function getAverageRating(req, res) {
     res.json(rows[0]);
   } catch (err) {
     console.error("❌ Get average rating error:", err.message);
-    res.status(500).json({ error: "Failed to calculate average rating" });
+    res.status(500).json({ error: "Failed to fetch average rating" });
   }
 }

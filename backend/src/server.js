@@ -5,8 +5,10 @@ import authRoutes from "./routes/auth.js";
 import caregiverRoutes from "./routes/caregivers.js";
 import bookingRoutes from "./routes/bookings.js";
 import reviewRoutes from "./routes/reviews.js";
+import adminRoutes from "./routes/admin.js";
+import profileRoutes from "./routes/profile.js"
+dotenv.config({ path: "../.env" });
 
-dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -17,6 +19,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/caregivers", caregiverRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin",adminRoutes);
+app.use("/api/profile",profileRoutes);
 
 app.get("/", (req, res) => {
   res.send("CareConnect Backend Running 🚀");
