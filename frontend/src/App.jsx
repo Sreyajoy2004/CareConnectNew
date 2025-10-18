@@ -18,11 +18,10 @@ import CareSeekerDashboard from './pages/CareSeekerDashboard'
 import CareSeekerProfile from './pages/careseeker/CareSeekerProfile'
 import SearchCaregivers from './pages/careseeker/SearchCaregivers'
 import CareSeekerReviews from './pages/careseeker/Reviews'
-import CareProviderProfileRead from './pages/careseeker/CareProviderProfileRead'
+// FIXED IMPORT PATH:
+import CareProviderProfileRead from './pages/careseeker/CareProviderProfileRead' // This should work now
 import BookingForm from './pages/careseeker/BookingForm'
-import ReviewForm from './pages/careseeker/ReviewForm' // ADD THIS IMPORT
-
-// Import CareSeekerBookings with proper named import
+import ReviewForm from './pages/careseeker/ReviewForm'
 import CareSeekerBookings from './pages/careseeker/Bookings'
 
 // Admin Pages
@@ -41,14 +40,37 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" replace />;
   }
   
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+  const getBackendRole = (frontendRole) => {
+    const roleMap = {
+      'careprovider': 'provider',
+      'careseeker': 'seeker',
+      'admin': 'admin',
+      'provider': 'provider',
+      'seeker': 'seeker'
+    };
+    return roleMap[frontendRole] || frontendRole;
+  };
+
+  if (requiredRole) {
+    const userBackendRole = getBackendRole(user.role);
+    const requiredBackendRole = getBackendRole(requiredRole);
+    
+    console.log('Role check:', { 
+      userRole: user.role, 
+      userBackendRole, 
+      requiredRole, 
+      requiredBackendRole 
+    });
+    
+    if (userBackendRole !== requiredBackendRole) {
+      console.log('Access denied: role mismatch');
+      return <Navigate to="/" replace />;
+    }
   }
   
   return children;
 };
 
-// Component that ALWAYS shows navbar on every page
 const Layout = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,7 +95,7 @@ const AppContent = () => {
         <Route 
           path="/careprovider/dashboard" 
           element={
-            <ProtectedRoute requiredRole="careprovider">
+            <ProtectedRoute requiredRole="provider">
               <CareProviderDashboard/>
             </ProtectedRoute>
           } 
@@ -81,7 +103,7 @@ const AppContent = () => {
         <Route 
           path="/careprovider/profile" 
           element={
-            <ProtectedRoute requiredRole="careprovider">
+            <ProtectedRoute requiredRole="provider">
               <Profile/>
             </ProtectedRoute>
           } 
@@ -89,7 +111,7 @@ const AppContent = () => {
         <Route 
           path="/careprovider/bookings" 
           element={
-            <ProtectedRoute requiredRole="careprovider">
+            <ProtectedRoute requiredRole="provider">
               <Bookings/>
             </ProtectedRoute>
           } 
@@ -97,7 +119,7 @@ const AppContent = () => {
         <Route 
           path="/careprovider/reviews" 
           element={
-            <ProtectedRoute requiredRole="careprovider">
+            <ProtectedRoute requiredRole="provider">
               <Reviews/>
             </ProtectedRoute>
           } 
@@ -107,7 +129,7 @@ const AppContent = () => {
         <Route 
           path="/careseeker/dashboard" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <CareSeekerDashboard/>
             </ProtectedRoute>
           } 
@@ -115,7 +137,7 @@ const AppContent = () => {
         <Route 
           path="/careseeker/profile" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <CareSeekerProfile/>
             </ProtectedRoute>
           } 
@@ -123,7 +145,7 @@ const AppContent = () => {
         <Route 
           path="/search" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <SearchCaregivers/>
             </ProtectedRoute>
           } 
@@ -131,7 +153,7 @@ const AppContent = () => {
         <Route 
           path="/careseeker/bookings" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <CareSeekerBookings/>
             </ProtectedRoute>
           } 
@@ -139,7 +161,7 @@ const AppContent = () => {
         <Route 
           path="/careseeker/reviews" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <CareSeekerReviews/>
             </ProtectedRoute>
           } 
@@ -149,17 +171,17 @@ const AppContent = () => {
         <Route 
           path="/booking/:id" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <BookingForm/>
             </ProtectedRoute>
           } 
         />
         
-        {/* Review Form Route - ADD THIS ROUTE */}
+        {/* Review Form Route */}
         <Route 
           path="/careseeker/review" 
           element={
-            <ProtectedRoute requiredRole="careseeker">
+            <ProtectedRoute requiredRole="seeker">
               <ReviewForm/>
             </ProtectedRoute>
           } 

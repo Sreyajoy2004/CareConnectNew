@@ -1,7 +1,7 @@
-// src/pages/careprovider/Profile.jsx
 import React, { useState, useRef } from 'react';
 import CareProviderSidebar from '../../components/careprovider/CareProviderSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const Profile = () => {
   const { user, updateUserProfile } = useAppContext();
@@ -12,20 +12,24 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const certificateInputRef = useRef(null);
 
-  // Initialize profile data from user context
+  // Initialize profile data from user context with backend integration
   const [profileData, setProfileData] = useState({
     name: user?.name || "Caregiver",
     email: user?.email || "caregiver@careconnect.com",
     phone: user?.profileData?.phone || "+1 (555) 123-4567",
     address: user?.profileData?.address || "123 Care Street, Boston, MA 02115",
-    bio: user?.profileData?.bio || "Experienced caregiver with 5+ years in child and elderly care. Certified in CPR and First Aid.",
-    specialties: user?.profileData?.specialties || ["Child Care", "Elderly Care", "Special Needs"],
+    bio: user?.profileData?.bio || "Experienced caregiver with 5+ years in child and elderly care.",
+    specialties: Array.isArray(user?.profileData?.specialties) 
+      ? user.profileData.specialties 
+      : (user?.profileData?.specialties ? user.profileData.specialties.split(',') : ["Child Care", "Elderly Care"]),
     experience: user?.profileData?.experience || "5 years",
     hourlyRate: user?.profileData?.hourlyRate || "$25/hr",
     availability: user?.profileData?.availability || "Full-time",
     qualifications: user?.profileData?.qualifications || "CPR Certified, Nursing Degree",
     mainSpecialty: user?.profileData?.mainSpecialty || "Childcare",
-    certifications: user?.profileData?.certifications || ["CPR Certificate.pdf", "First Aid Certificate.pdf"],
+    certifications: Array.isArray(user?.profileData?.certifications) 
+      ? user.profileData.certifications 
+      : (user?.profileData?.certifications ? user.profileData.certifications.split(',') : ["CPR Certificate.pdf"]),
     memberSince: user?.profileData?.memberSince || "Jan 2023",
     completedJobs: user?.profileData?.completedJobs || 47,
     responseRate: user?.profileData?.responseRate || 95,
@@ -34,13 +38,24 @@ const Profile = () => {
 
   const handleSave = async () => {
     try {
-      const success = await updateUserProfile(profileData);
+      // Prepare data for backend
+      const backendData = {
+        name: profileData.name,
+        email: profileData.email,
+        address: profileData.address,
+        bio: profileData.bio,
+        specialties: profileData.specialties.join(','),
+        experience_years: parseInt(profileData.experience) || 5,
+        availability: profileData.availability,
+        qualifications: profileData.qualifications,
+        certificates: profileData.certifications.join(',')
+      };
+
+      const success = await updateUserProfile(backendData);
       
       if (success) {
         setIsEditing(false);
         setNotificationSent(true);
-        
-        // Reset notification after 3 seconds
         setTimeout(() => setNotificationSent(false), 3000);
       }
     } catch (error) {
@@ -104,7 +119,6 @@ const Profile = () => {
         <CareProviderSidebar />
         
         <div className="flex-1 p-6 lg:p-8">
-          {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
@@ -137,7 +151,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Admin Notification */}
           {notificationSent && (
             <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-600 px-4 py-3 rounded-lg">
               <div className="flex items-center">
@@ -150,11 +163,9 @@ const Profile = () => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Profile Card */}
             <div className="lg:col-span-1">
               <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-lg border-2 border-blue-100 hover:border-blue-200 transition-all duration-300">
                 <div className="text-center">
-                  {/* Profile Image */}
                   <div className="relative inline-block">
                     <div className="w-32 h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-4xl font-bold shadow-lg border-4 border-white overflow-hidden">
                       {profileData.profileImage ? (
@@ -192,7 +203,6 @@ const Profile = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-1">{user?.name || profileData.name}</h2>
                   <p className="text-gray-600 mb-3">Professional Caregiver</p>
                   
-                  {/* Verification Status */}
                   <div className="inline-flex items-center bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -201,7 +211,6 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Stats Section */}
                 <div className="space-y-4 mt-6">
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
                     <div className="flex items-center space-x-3">
@@ -248,13 +257,11 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Right Column - Personal Information */}
             <div className="lg:col-span-2">
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 shadow-lg border-2 border-gray-100 hover:border-gray-200 transition-all duration-300">
                 <h3 className="text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">Personal Information</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Information */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                     <input 
@@ -373,7 +380,6 @@ const Profile = () => {
                     />
                   </div>
                   
-                  {/* Specialties Section */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Specialties</label>
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -429,7 +435,6 @@ const Profile = () => {
                     )}
                   </div>
 
-                  {/* Certificates Section */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Certificates & Documents
@@ -481,7 +486,6 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Additional Info Section */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

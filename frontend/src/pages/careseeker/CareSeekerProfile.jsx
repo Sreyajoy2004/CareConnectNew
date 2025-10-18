@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
+import apiService from '../../services/api';
 
 const CareSeekerProfile = () => {
   const { user, updateProfile } = useAppContext();
@@ -31,22 +32,24 @@ const CareSeekerProfile = () => {
     try {
       setLoading(true);
       
-      // Try API call first, fallback to localStorage/mock data
       try {
-        const response = await fetch(`/api/careseeker/${user?.id}/profile`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // Try backend API first
+        const response = await apiService.getProfile();
         
-        if (response.ok) {
-          const data = await response.json();
-          setFormData(data);
-        } else {
-          throw new Error('API not available');
-        }
+        // Transform backend data to frontend format
+        const nameParts = response.name?.split(' ') || ['Sarah', 'Johnson'];
+        const transformedData = {
+          firstName: nameParts[0] || 'Sarah',
+          lastName: nameParts.slice(1).join(' ') || 'Johnson',
+          email: response.email || 'family@careconnect.com',
+          phone: response.phone || '(555) 123-4567',
+          address: response.address || '123 Main Street, Anytown, CA 12345',
+          emergencyContact: '(555) 987-6543' // This would come from a separate API
+        };
+        
+        setFormData(transformedData);
       } catch (apiError) {
+        console.log('Backend unavailable, using demo mode');
         // Fallback to localStorage data
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const storedProfile = JSON.parse(localStorage.getItem('careSeekerProfile') || '{}');
@@ -92,13 +95,23 @@ const CareSeekerProfile = () => {
     }
 
     try {
-      const success = await updateProfile(formData);
+      // Prepare data for backend - UPDATED FOR AMAL'S BACKEND STRUCTURE
+      const profileData = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        bio: '', // Add empty bio for backend compatibility
+        // emergencyContact would be handled separately in a real app
+      };
+
+      const success = await updateProfile(profileData);
       
       if (success) {
         setSuccess('Profile updated successfully!');
         setIsEditing(false);
         
-        // Update localStorage
+        // Update localStorage for consistency
         const updatedUser = {
           ...JSON.parse(localStorage.getItem('user') || '{}'),
           firstName: formData.firstName,

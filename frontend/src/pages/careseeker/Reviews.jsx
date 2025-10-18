@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const CareSeekerReviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -51,21 +52,30 @@ const CareSeekerReviews = () => {
       setError('');
       
       try {
-        const response = await fetch(`/api/careseeker/${user?.id}/reviews`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // Try backend API first - NOTE: Amal's backend doesn't have /reviews/my endpoint yet
+        // So we'll use the fallback for now
+        throw new Error('Endpoint not available yet');
         
-        if (response.ok) {
-          const data = await response.json();
-          setReviews(data.reviews || []);
-          setStats(data.stats || { totalReviews: 0, averageRating: 0 });
-        } else {
-          throw new Error('API not available');
-        }
+        // This would be the code when the endpoint is available:
+        // const response = await apiService.getMyReviews();
+        // if (response && Array.isArray(response)) {
+        //   // Transform backend reviews to frontend format
+        //   const transformedReviews = response.map(review => ({
+        //     id: review.id,
+        //     caregiverId: review.resource_id,
+        //     caregiverName: review.caregiver_name || 'Caregiver',
+        //     serviceType: review.service_type || 'General Care',
+        //     rating: review.rating,
+        //     comment: review.comment,
+        //     createdAt: review.created_at,
+        //     bookingId: review.booking_id,
+        //     canEdit: true
+        //   }));
+        //   setReviews(transformedReviews);
+        //   calculateStats(transformedReviews);
+        // }
       } catch (apiError) {
+        console.log('Backend unavailable, using demo mode');
         // Fallback to localStorage data
         const storedReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
         
@@ -78,14 +88,7 @@ const CareSeekerReviews = () => {
         }
         
         setReviews(reviewsToUse);
-        
-        // Calculate stats
-        setStats({
-          totalReviews: reviewsToUse.length,
-          averageRating: reviewsToUse.length > 0 
-            ? reviewsToUse.reduce((acc, review) => acc + review.rating, 0) / reviewsToUse.length 
-            : 0
-        });
+        calculateStats(reviewsToUse);
       }
     } catch (err) {
       setError('Failed to load reviews');
@@ -95,28 +98,23 @@ const CareSeekerReviews = () => {
     }
   };
 
+  const calculateStats = (reviewsArray) => {
+    setStats({
+      totalReviews: reviewsArray.length,
+      averageRating: reviewsArray.length > 0 
+        ? reviewsArray.reduce((acc, review) => acc + review.rating, 0) / reviewsArray.length 
+        : 0
+    });
+  };
+
   const handleDeleteReview = async (reviewId) => {
     console.log('Deleting review:', reviewId);
     if (!window.confirm('Are you sure you want to delete this review?')) return;
     
     try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/reviews/${reviewId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          await updateLocalStorageAfterDelete(reviewId);
-        }
-      } catch (apiError) {
-        // Demo mode - update in localStorage
-        await updateLocalStorageAfterDelete(reviewId);
-      }
+      // Try API first - Note: Backend doesn't have delete review endpoint yet
+      // For now, we'll just use localStorage
+      await updateLocalStorageAfterDelete(reviewId);
     } catch (err) {
       console.error('Error deleting review:', err);
       setError('Failed to delete review');
@@ -168,14 +166,7 @@ const CareSeekerReviews = () => {
     // Update the component state immediately
     const updatedReviews = reviews.filter(review => review.id !== reviewId);
     setReviews(updatedReviews);
-    
-    // Update stats based on remaining reviews
-    setStats({
-      totalReviews: updatedReviews.length,
-      averageRating: updatedReviews.length > 0 
-        ? updatedReviews.reduce((acc, review) => acc + review.rating, 0) / updatedReviews.length 
-        : 0
-    });
+    calculateStats(updatedReviews);
 
     window.dispatchEvent(new Event('storage'));
     

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const CareSeekerBookings = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -17,10 +18,55 @@ const CareSeekerBookings = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
 
-  // Get bookings from localStorage - FIXED VERSION
+  // Transform backend bookings to frontend format
+  const transformBackendBookings = (backendBookings) => {
+    const now = new Date();
+    
+    const transformed = backendBookings.map(booking => ({
+      id: booking.id,
+      caregiverName: booking.careprovider_name || booking.provider_name || 'Caregiver',
+      serviceType: booking.category || 'Care Service',
+      startTime: booking.booking_date,
+      endTime: new Date(new Date(booking.booking_date).getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      duration: 2,
+      totalAmount: 50, // Default amount
+      status: booking.status,
+      address: 'Address not specified',
+      specialRequirements: '',
+      date: booking.booking_date.split('T')[0],
+      time: new Date(booking.booking_date).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      notes: '',
+      caregiverId: booking.resource_id,
+      canCancel: ['pending', 'confirmed'].includes(booking.status),
+      canReview: booking.status === 'completed' && !booking.rating
+    }));
+
+    // Categorize bookings
+    const upcoming = transformed.filter(booking => 
+      booking.status === 'confirmed' && new Date(booking.startTime) > now
+    );
+    
+    const pending = transformed.filter(booking => 
+      booking.status === 'pending'
+    );
+    
+    const completed = transformed.filter(booking => 
+      booking.status === 'completed'
+    );
+
+    const cancelled = transformed.filter(booking => 
+      booking.status === 'cancelled'
+    );
+
+    return { upcoming, pending, completed, cancelled };
+  };
+
+  // Get demo bookings fallback
   const getMockBookings = () => {
     const storedBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-    console.log('Stored bookings:', storedBookings); // Debug log
     
     const now = new Date();
     
@@ -41,8 +87,6 @@ const CareSeekerBookings = () => {
       booking.status === 'cancelled'
     );
 
-    console.log('Categorized:', { upcoming, pending, completed, cancelled }); // Debug log
-
     return { upcoming, pending, completed, cancelled };
   };
 
@@ -51,7 +95,6 @@ const CareSeekerBookings = () => {
     
     // Listen for storage changes to get real-time updates
     const handleStorageChange = () => {
-      console.log('Storage changed, refreshing bookings...');
       fetchBookings();
     };
     
@@ -73,23 +116,14 @@ const CareSeekerBookings = () => {
       setLoading(true);
       
       try {
-        const response = await fetch(`/api/careseeker/${user?.id}/bookings`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setBookings(data);
-        } else {
-          throw new Error('API not available');
-        }
+        // Use backend API
+        const response = await apiService.getMyBookings();
+        const categorizedBookings = transformBackendBookings(response);
+        setBookings(categorizedBookings);
       } catch (apiError) {
-        // Use mock data with localStorage integration
+        // Fallback to demo data
+        console.log('Backend unavailable, using demo mode');
         const mockBookings = getMockBookings();
-        console.log('Setting mock bookings:', mockBookings); // Debug log
         setBookings(mockBookings);
       }
     } catch (err) {
@@ -102,33 +136,16 @@ const CareSeekerBookings = () => {
 
   const handleCancelBooking = async (bookingId) => {
     try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            cancelledBy: 'careseeker',
-            cancellationReason: 'Changed plans'
-          })
-        });
-        
-        if (response.ok) {
-          fetchBookings();
-          return;
-        }
-      } catch (apiError) {
-        console.log('API not available, using demo mode');
-      }
-
-      // Demo mode - update in localStorage for both care seeker and care provider
+      // Use backend API
+      await apiService.cancelBooking(bookingId);
+      fetchBookings();
+      alert('Booking cancelled successfully!');
+    } catch (error) {
+      console.log('Backend unavailable, using demo mode');
+      // Fallback to demo logic
       const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
       const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
       
-      // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
         booking.id === bookingId 
           ? { 
@@ -142,7 +159,6 @@ const CareSeekerBookings = () => {
       );
       localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
       
-      // Update care provider bookings
       const updatedProviderBookings = providerBookings.map(booking =>
         booking.id === bookingId 
           ? { 
@@ -157,12 +173,7 @@ const CareSeekerBookings = () => {
       
       fetchBookings();
       window.dispatchEvent(new Event('storage'));
-      
       alert('Booking cancelled successfully!');
-      
-    } catch (err) {
-      setError('Failed to cancel booking');
-      console.error('Error cancelling booking:', err);
     }
   };
 
@@ -238,7 +249,7 @@ const CareSeekerBookings = () => {
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Demo Mode: Real-time synchronization with caregivers. Bookings update automatically.</span>
+              <span>Integrated Mode: Using backend API with demo fallback</span>
             </div>
           </div>
 

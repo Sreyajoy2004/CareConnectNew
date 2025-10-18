@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const ReviewForm = () => {
   const navigate = useNavigate();
@@ -91,91 +92,30 @@ const ReviewForm = () => {
     }
 
     try {
-      // Create review data
-      const reviewId = location.state?.editing ? booking.id : Date.now();
-      
-      const newReview = {
-        id: reviewId,
+      // Try backend first - UPDATED FOR AMAL'S BACKEND STRUCTURE
+      const reviewData = {
         bookingId: booking.id,
-        caregiverId: booking.caregiverId || booking.providerId,
-        caregiverName: booking.caregiverName || booking.providerName,
-        serviceType: booking.serviceType,
-        rating: formData.rating,
-        comment: formData.comment,
-        recommend: formData.recommend,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        canEdit: true,
-        clientName: user?.name || 'Care Seeker',
-        clientId: user?.id
+        resourceId: booking.caregiverId || booking.providerId,
+        rating: parseInt(formData.rating),
+        comment: formData.comment
       };
 
-      // Update care seeker reviews
-      const seekerReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
-      const existingReviewIndex = seekerReviews.findIndex(r => r.id === reviewId);
-      
-      let updatedSeekerReviews;
-      if (existingReviewIndex >= 0) {
-        // Update existing review
-        updatedSeekerReviews = [...seekerReviews];
-        updatedSeekerReviews[existingReviewIndex] = newReview;
-      } else {
-        // Add new review
-        updatedSeekerReviews = [...seekerReviews, newReview];
+      try {
+        const response = await apiService.createReview(reviewData);
+        
+        if (response.reviewId) {
+          // Also update localStorage for consistency
+          await updateLocalStorageAfterSubmit(response.reviewId);
+          alert(location.state?.editing ? 'Review updated successfully!' : 'Thank you for your review!');
+          navigate('/careseeker/reviews');
+          return;
+        }
+      } catch (apiError) {
+        console.log('Backend review failed, using demo mode');
       }
-      localStorage.setItem('careSeekerReviews', JSON.stringify(updatedSeekerReviews));
 
-      // Update care provider reviews
-      const providerReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
-      const existingProviderReviewIndex = providerReviews.findIndex(r => r.id === reviewId);
-      
-      let updatedProviderReviews;
-      if (existingProviderReviewIndex >= 0) {
-        // Update existing review
-        updatedProviderReviews = [...providerReviews];
-        updatedProviderReviews[existingProviderReviewIndex] = {
-          ...newReview,
-          client: { name: user?.name || 'Care Seeker' }
-        };
-      } else {
-        // Add new review
-        updatedProviderReviews = [...providerReviews, {
-          ...newReview,
-          client: { name: user?.name || 'Care Seeker' }
-        }];
-      }
-      localStorage.setItem('caregiverReviews', JSON.stringify(updatedProviderReviews));
-
-      // Update bookings with review data
-      const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-      const updatedSeekerBookings = seekerBookings.map(b =>
-        b.id === booking.id 
-          ? { 
-              ...b, 
-              rating: formData.rating, 
-              review: formData.comment,
-              canReview: false
-            } 
-          : b
-      );
-      localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
-
-      const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
-      const updatedProviderBookings = providerBookings.map(b =>
-        b.id === booking.id 
-          ? { 
-              ...b, 
-              rating: formData.rating, 
-              review: formData.comment
-            } 
-          : b
-      );
-      localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
-
-      // Trigger storage event to update other components
-      window.dispatchEvent(new Event('storage'));
-      
-      // Show success message and redirect
+      // Fallback to localStorage-only review
+      await updateLocalStorageAfterSubmit(Date.now());
       alert(location.state?.editing ? 'Review updated successfully!' : 'Thank you for your review!');
       navigate('/careseeker/reviews');
       
@@ -183,6 +123,89 @@ const ReviewForm = () => {
       console.error('Error submitting review:', error);
       alert('Error submitting review. Please try again.');
     }
+  };
+
+  const updateLocalStorageAfterSubmit = async (reviewId) => {
+    const newReview = {
+      id: reviewId,
+      bookingId: booking.id,
+      caregiverId: booking.caregiverId || booking.providerId,
+      caregiverName: booking.caregiverName || booking.providerName,
+      serviceType: booking.serviceType,
+      rating: formData.rating,
+      comment: formData.comment,
+      recommend: formData.recommend,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      canEdit: true,
+      clientName: user?.name || 'Care Seeker',
+      clientId: user?.id
+    };
+
+    // Update care seeker reviews
+    const seekerReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
+    const existingReviewIndex = seekerReviews.findIndex(r => r.id === reviewId);
+    
+    let updatedSeekerReviews;
+    if (existingReviewIndex >= 0) {
+      // Update existing review
+      updatedSeekerReviews = [...seekerReviews];
+      updatedSeekerReviews[existingReviewIndex] = newReview;
+    } else {
+      // Add new review
+      updatedSeekerReviews = [...seekerReviews, newReview];
+    }
+    localStorage.setItem('careSeekerReviews', JSON.stringify(updatedSeekerReviews));
+
+    // Update care provider reviews
+    const providerReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
+    const existingProviderReviewIndex = providerReviews.findIndex(r => r.id === reviewId);
+    
+    let updatedProviderReviews;
+    if (existingProviderReviewIndex >= 0) {
+      // Update existing review
+      updatedProviderReviews = [...providerReviews];
+      updatedProviderReviews[existingProviderReviewIndex] = {
+        ...newReview,
+        client: { name: user?.name || 'Care Seeker' }
+      };
+    } else {
+      // Add new review
+      updatedProviderReviews = [...providerReviews, {
+        ...newReview,
+        client: { name: user?.name || 'Care Seeker' }
+      }];
+    }
+    localStorage.setItem('caregiverReviews', JSON.stringify(updatedProviderReviews));
+
+    // Update bookings with review data
+    const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+    const updatedSeekerBookings = seekerBookings.map(b =>
+      b.id === booking.id 
+        ? { 
+            ...b, 
+            rating: formData.rating, 
+            review: formData.comment,
+            canReview: false
+          } 
+        : b
+    );
+    localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
+
+    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+    const updatedProviderBookings = providerBookings.map(b =>
+      b.id === booking.id 
+        ? { 
+            ...b, 
+            rating: formData.rating, 
+            review: formData.comment
+          } 
+        : b
+    );
+    localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
+
+    // Trigger storage event to update other components
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleCancel = () => {

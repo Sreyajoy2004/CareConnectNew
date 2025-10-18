@@ -1,5 +1,6 @@
 // src/context/AppContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
+import apiService from '../services/api';
 
 // 1. Create context
 export const AppContext = createContext();
@@ -14,7 +15,7 @@ export const AppContextProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [adminNotifications, setAdminNotifications] = useState([]);
 
-  // Mock user database for testing
+  // Mock user database for testing (fallback)
   const mockUsers = {
     'family@careconnect.com': { 
       name: 'Sarah Family',
@@ -84,47 +85,120 @@ export const AppContextProvider = ({ children }) => {
     console.log('Admin notified about profile update:', notification);
   };
 
-  // Login function
+  // Login function with backend integration
   const login = async (email, password) => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Try backend first
+      const response = await apiService.login(email, password);
       
-      const userData = mockUsers[email];
-      
-      if (userData && userData.password === password) {
-        const user = {
-          id: email.split('@')[0],
-          email: email,
-          name: userData.name,
-          role: userData.role,
-          profileData: userData.profileData || {
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        
+        // Transform backend user to frontend format
+        const userData = {
+          id: response.user.id,
+          name: response.user.name,
+          email: response.user.email,
+          role: response.user.role, // This will be 'provider' or 'seeker' from backend
+          profilePicture: null,
+          phone: response.user.phone || '',
+          address: response.user.address || '',
+          // Map backend role to frontend role names for routing
+          frontendRole: response.user.role === 'provider' ? 'careprovider' : 
+                       response.user.role === 'seeker' ? 'careseeker' : response.user.role,
+          profileData: {
             memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
             completedJobs: 0,
-            responseRate: 100
+            responseRate: 100,
+            ...response.user
           }
         };
         
-        setUser(user);
-        setRole(userData.role);
-        localStorage.setItem('user', JSON.stringify(user));
-        
+        setUser(userData);
+        setRole(userData.frontendRole); // Use frontend role for routing
+        localStorage.setItem('user', JSON.stringify(userData));
         setLoading(false);
         return true;
-      } else {
-        setLoading(false);
-        return false;
       }
-    } catch (error) {
+      
       setLoading(false);
       return false;
+      
+    } catch (error) {
+      // Fallback to demo mode
+      console.log('Backend unavailable, using demo mode');
+      return demoLogin(email, password);
     }
   };
 
-  // Register function - Enhanced for caregiver profile data
+  // Update demo login to handle role mapping
+  const demoLogin = (email, password) => {
+    const userData = mockUsers[email];
+    if (userData && userData.password === password) {
+      const user = {
+        id: email.split('@')[0],
+        email: email,
+        name: userData.name,
+        role: userData.role, // Keep original for display
+        frontendRole: userData.role, // Same for demo
+        profileData: userData.profileData || {
+          memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+          completedJobs: 0,
+          responseRate: 100
+        }
+      };
+      
+      setUser(user);
+      setRole(userData.role);
+      localStorage.setItem('user', JSON.stringify(user));
+      return true;
+    }
+    return false;
+  };
+
+  // Register function - Enhanced for backend integration
   const register = async (formData) => {
     setLoading(true);
     try {
+      // Prepare data for backend
+      const backendData = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role === 'careprovider' ? 'provider' : 'seeker',
+        phone: formData.phone,
+        address: formData.address,
+        description: formData.bio,
+        specialization: formData.mainSpecialty,
+        hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+        experience_years: formData.experience ? parseInt(formData.experience) : null,
+        category: formData.mainSpecialty,
+        // Add other fields as needed
+      };
+
+      // Try backend registration first
+      try {
+        const response = await apiService.register(backendData);
+        
+        if (response.userId) {
+          // Auto-login after successful registration
+          const loginSuccess = await login(formData.email, formData.password);
+          if (loginSuccess) {
+            // Notify admin about new caregiver registration
+            if (formData.role === 'careprovider') {
+              notifyAdmin(response.userId, backendData.name, { type: 'new_registration' });
+            }
+            
+            setLoading(false);
+            return true;
+          }
+        }
+      } catch (apiError) {
+        console.log('Backend registration failed, using demo mode');
+      }
+
+      // Fallback to demo registration
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const user = {
@@ -169,6 +243,14 @@ export const AppContextProvider = ({ children }) => {
   const updateUserProfile = async (updates) => {
     setLoading(true);
     try {
+      // Try backend first
+      try {
+        await apiService.updateProfile(updates);
+      } catch (apiError) {
+        console.log('Backend profile update failed, using demo mode');
+      }
+
+      // Fallback to localStorage update
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const updatedUser = {
@@ -199,6 +281,14 @@ export const AppContextProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     setLoading(true);
     try {
+      // Try backend first
+      try {
+        await apiService.updateProfile(profileData);
+      } catch (apiError) {
+        console.log('Backend profile update failed, using demo mode');
+      }
+
+      // Fallback to localStorage update
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const updatedUser = {
@@ -259,6 +349,7 @@ export const AppContextProvider = ({ children }) => {
     setBookings([]);
     setReviews([]);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   // Check for existing user on app load
@@ -272,6 +363,7 @@ export const AppContextProvider = ({ children }) => {
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     }
   }, []);

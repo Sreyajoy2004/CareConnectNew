@@ -1,711 +1,427 @@
 // src/pages/Register.jsx
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    role: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
+    role: 'careseeker',
     phone: '',
-    // CareSeeker specific fields
     address: '',
-    emergencyContact: '',
-    // CareProvider specific fields
-    experience: '',
-    qualifications: '',
-    mainSpecialty: '',
-    childcareSpecialties: [],
-    elderlycareSpecialties: [],
-    hourlyRate: '',
-    availability: '',
     bio: '',
-    certifications: [],
-    profileImage: null
+    mainSpecialty: '',
+    experience: '',
+    hourlyRate: '',
+    qualifications: '',
+    availability: 'Flexible'
   });
-
-  const [showSpecialtiesDropdown, setShowSpecialtiesDropdown] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [showProviderFields, setShowProviderFields] = useState(false);
   
   const { register } = useAppContext();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/dashboard';
-  const switchTo = location.state?.switchTo;
 
-  // Create refs
-  const dropdownRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const profileImageInputRef = useRef(null);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Show/hide provider fields based on role
+    if (name === 'role') {
+      setShowProviderFields(value === 'careprovider');
+    }
+    
+    // Clear errors when user types
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowSpecialtiesDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.password) newErrors.password = 'Password is required';
+    if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    
+    if (showProviderFields) {
+      if (!formData.mainSpecialty.trim()) newErrors.mainSpecialty = 'Main specialty is required';
+      if (!formData.experience.trim()) newErrors.experience = 'Experience is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    // Basic validation
-    if (!formData.role || !formData.email || !formData.password || !formData.firstName || !formData.lastName || !formData.phone) {
-      setError('Please fill in all required fields');
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
-    }
-
-    // Role-specific validation
-    if (formData.role === 'careseeker' && !formData.address) {
-      setError('Please fill in your address');
-      setLoading(false);
-      return;
-    }
-
-    if (formData.role === 'careprovider') {
-      if (!formData.experience || !formData.qualifications || !formData.hourlyRate || !formData.mainSpecialty) {
-        setError('Please fill in all caregiver required fields');
-        setLoading(false);
-        return;
-      }
-    }
-
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    
     try {
-      // Prepare complete data for backend including files
-      const userData = {
-        role: formData.role,
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        address: formData.address,
-        emergencyContact: formData.emergencyContact,
-        experience: formData.experience,
-        qualifications: formData.qualifications,
-        mainSpecialty: formData.mainSpecialty,
-        specialties: formData.mainSpecialty === 'childcare' ? formData.childcareSpecialties : formData.elderlycareSpecialties,
-        hourlyRate: formData.hourlyRate,
-        availability: formData.availability,
-        bio: formData.bio,
-        profileImage: formData.profileImage,
-        certifications: formData.certifications, // Array of file objects
-        memberSince: new Date().toISOString()
-      };
-
-      const success = await register(userData);
+      const success = await register(formData);
       
       if (success) {
-        navigate(from, { replace: true });
+        // Redirect based on role
+        if (formData.role === 'careprovider') {
+          navigate('/careprovider/dashboard');
+        } else {
+          navigate('/careseeker/dashboard');
+        }
       } else {
-        setError('Registration failed. Please try again.');
+        setErrors({ submit: 'Registration failed. Please try again.' });
       }
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
+    } catch (error) {
+      setErrors({ submit: 'An error occurred during registration.' });
+      console.error('Registration error:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox') {
-      if (name === 'childcareSpecialties') {
-        const updatedSpecialties = checked 
-          ? [...formData.childcareSpecialties, value]
-          : formData.childcareSpecialties.filter(s => s !== value);
-        setFormData({ ...formData, childcareSpecialties: updatedSpecialties });
-      } else if (name === 'elderlycareSpecialties') {
-        const updatedSpecialties = checked 
-          ? [...formData.elderlycareSpecialties, value]
-          : formData.elderlycareSpecialties.filter(s => s !== value);
-        setFormData({ ...formData, elderlycareSpecialties: updatedSpecialties });
-      }
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-    
-    if (error) setError('');
-  };
-
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setFormData({
-      ...formData,
-      certifications: [...formData.certifications, ...files]
-    });
-  };
-
-  const handleProfileImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size should be less than 5MB');
-        return;
-      }
-
-      setFormData({
-        ...formData,
-        profileImage: file
-      });
-    }
-  };
-
-  const removeFile = (indexToRemove) => {
-    setFormData({
-      ...formData,
-      certifications: formData.certifications.filter((_, index) => index !== indexToRemove)
-    });
-  };
-
-  const removeProfileImage = () => {
-    setFormData({
-      ...formData,
-      profileImage: null
-    });
-    if (profileImageInputRef.current) {
-      profileImageInputRef.current.value = '';
-    }
-  };
-
-  const handleMainSpecialtyChange = (specialty) => {
-    setFormData({ 
-      ...formData, 
-      mainSpecialty: specialty,
-      childcareSpecialties: [],
-      elderlycareSpecialties: []
-    });
-    setShowSpecialtiesDropdown(true);
-  };
-
-  const toggleSpecialtiesDropdown = () => {
-    setShowSpecialtiesDropdown(!showSpecialtiesDropdown);
-  };
-
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleProfileImageButtonClick = () => {
-    profileImageInputRef.current?.click();
-  };
-
-  const getInitials = (firstName, lastName) => {
-    if (!firstName && !lastName) return 'UP';
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-
-  // Set role from URL state if provided
-  React.useEffect(() => {
-    if (switchTo) {
-      setFormData(prev => ({ ...prev, role: switchTo }));
-    }
-  }, [switchTo]);
-
-  const childcareSpecialtiesOptions = [
-    'Newborn Care',
-    'Toddler Care',
-    'School Age Children',
-    'Homework Assistance',
-    'Meal Preparation for Children',
-    'Child Development Activities',
-    'Special Needs Children'
-  ];
-
-  const elderlycareSpecialtiesOptions = [
-    'Dementia Care',
-    'Alzheimer Care',
-    'Mobility Assistance',
-    'Medication Management',
-    'Personal Hygiene Care',
-    'Meal Preparation for Seniors',
-    'Companionship',
-    'Post-Surgery Care'
+  const specialties = [
+    'Child Care',
+    'Elderly Care',
+    'Special Needs',
+    'Post-Surgery Care',
+    'Physical Therapy',
+    'Mental Health Support'
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-800/10 to-transparent animate-pulse"></div>
-      
-      <form onSubmit={handleSubmit} className="max-w-lg w-full text-center border border-gray-300/60 rounded-2xl px-8 bg-white relative z-10 shadow-2xl">
-        <h1 className="text-gray-900 text-3xl mt-10 font-medium">Create Account</h1>
-        <p className="text-gray-500 text-sm mt-2">Sign up to get started</p>
-        
-        {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-full text-sm">
-            {error}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join CareConnect</h1>
+          <p className="text-gray-600">Create your account to get started</p>
+        </div>
+
+        {errors.submit && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
+            {errors.submit}
           </div>
         )}
 
-        {/* Role Selection */}
-        <div className="mt-6">
-          <label className="block text-left text-sm font-medium text-gray-700 mb-2">I want to:</label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, role: 'careseeker' })}
-              className={`p-3 border rounded-xl text-sm font-medium transition-all ${
-                formData.role === 'careseeker' 
-                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400'
-              }`}
-            >
-              Find Caregivers
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, role: 'careprovider' })}
-              className={`p-3 border rounded-xl text-sm font-medium transition-all ${
-                formData.role === 'careprovider' 
-                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                  : 'border-gray-300 text-gray-600 hover:border-gray-400'
-              }`}
-            >
-              Become a Caregiver
-            </button>
-          </div>
-        </div>
-
-        {/* Basic Information */}
-        <div className="mt-6 grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Role Selection */}
           <div>
-            <input 
-              name="firstName"
-              type="text" 
-              placeholder="First Name" 
-              value={formData.firstName}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              required 
-            />
-          </div>
-          <div>
-            <input 
-              name="lastName"
-              type="text" 
-              placeholder="Last Name" 
-              value={formData.lastName}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              required 
-            />
-          </div>
-        </div>
-
-        {/* Email Field */}
-        <div className="mt-4">
-          <input 
-            name="email"
-            type="email" 
-            placeholder="Email Address" 
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            required 
-          />
-        </div>
-
-        {/* Phone Field */}
-        <div className="mt-4">
-          <input 
-            name="phone"
-            type="tel" 
-            placeholder="Phone Number" 
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            required 
-          />
-        </div>
-
-        {/* Password Fields */}
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <input 
-              name="password"
-              type="password" 
-              placeholder="Password" 
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              required 
-            />
-          </div>
-          <div>
-            <input 
-              name="confirmPassword"
-              type="password" 
-              placeholder="Confirm Password" 
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              required 
-            />
-          </div>
-        </div>
-
-        {/* CareSeeker Specific Fields */}
-        {formData.role === 'careseeker' && (
-          <div className="mt-4 space-y-4">
-            <input 
-              name="address"
-              type="text" 
-              placeholder="Full Address" 
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            />
-            <input 
-              name="emergencyContact"
-              type="text" 
-              placeholder="Emergency Contact Number" 
-              value={formData.emergencyContact}
-              onChange={handleChange}
-              className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-            />
-          </div>
-        )}
-
-        {/* CareProvider Specific Fields */}
-        {formData.role === 'careprovider' && (
-          <div className="mt-4 space-y-4">
-            {/* Profile Photo Upload */}
-            <div>
-              <label className="block text-left text-sm font-medium text-gray-700 mb-2">
-                Profile Photo
-              </label>
-              <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg overflow-hidden">
-                    {formData.profileImage ? (
-                      <img 
-                        src={URL.createObjectURL(formData.profileImage)} 
-                        alt="Profile preview" 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      getInitials(formData.firstName, formData.lastName)
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 w-full">
-                  <input 
-                    ref={profileImageInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileImageChange}
-                    className="hidden"
-                  />
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <button
-                      type="button"
-                      onClick={handleProfileImageButtonClick}
-                      className="bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all flex items-center justify-center gap-2 hover:bg-gray-50 flex-1"
-                    >
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="truncate">{formData.profileImage ? 'Change Photo' : 'Upload Photo'}</span>
-                    </button>
-                    {formData.profileImage && (
-                      <button
-                        type="button"
-                        onClick={removeProfileImage}
-                        className="bg-red-50 border border-red-200 text-red-600 h-12 rounded-full px-4 text-sm outline-none hover:bg-red-100 transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none sm:w-auto"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        <span>Remove</span>
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 text-left">Recommended: Square image, max 5MB</p>
-                </div>
-              </div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              I want to join as:
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, role: 'careseeker' }));
+                  setShowProviderFields(false);
+                }}
+                className={`p-4 border-2 rounded-xl text-center transition-all ${
+                  formData.role === 'careseeker'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                <div className="font-medium mb-1">Care Seeker</div>
+                <div className="text-sm text-gray-600">Looking for care services</div>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, role: 'careprovider' }));
+                  setShowProviderFields(true);
+                }}
+                className={`p-4 border-2 rounded-xl text-center transition-all ${
+                  formData.role === 'careprovider'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                <div className="font-medium mb-1">Care Provider</div>
+                <div className="text-sm text-gray-600">Offering care services</div>
+              </button>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <input 
-                  name="experience"
-                  type="number" 
-                  placeholder="Years of Experience" 
-                  value={formData.experience}
-                  onChange={handleChange}
-                  className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                />
-              </div>
-              <div>
-                <input 
-                  name="hourlyRate"
-                  type="number" 
-                  placeholder="Hourly Rate ($)" 
-                  value={formData.hourlyRate}
-                  onChange={handleChange}
-                  className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                />
-              </div>
+          {/* Basic Information */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                First Name *
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                placeholder="John"
+              />
+              {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
             </div>
             
             <div>
-              <input 
-                name="qualifications"
-                type="text" 
-                placeholder="Qualifications (e.g., CPR Certified, Nursing Degree)" 
-                value={formData.qualifications}
-                onChange={handleChange}
-                className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              />
-            </div>
-
-            {/* Main Specialty Selection */}
-            <div>
-              <label className="block text-left text-sm font-medium text-gray-700 mb-2">Main Specialty:</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleMainSpecialtyChange('childcare')}
-                  className={`p-3 border rounded-xl text-sm font-medium transition-all ${
-                    formData.mainSpecialty === 'childcare' 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
-              }`}
-                >
-                  Child Care
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMainSpecialtyChange('elderlycare')}
-                  className={`p-3 border rounded-xl text-sm font-medium transition-all ${
-                    formData.mainSpecialty === 'elderlycare' 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  Elderly Care
-                </button>
-              </div>
-            </div>
-
-            {/* Specialties Dropdown */}
-            {(formData.mainSpecialty === 'childcare' || formData.mainSpecialty === 'elderlycare') && (
-              <div ref={dropdownRef} className="relative">
-                <button
-                  type="button"
-                  onClick={toggleSpecialtiesDropdown}
-                  className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-left flex justify-between items-center"
-                >
-                  <span className="truncate">
-                    {formData.mainSpecialty === 'childcare' 
-                      ? `Childcare Specialties (${formData.childcareSpecialties.length} selected)`
-                      : `Elderly Care Specialties (${formData.elderlycareSpecialties.length} selected)`
-                    }
-                  </span>
-                  <svg 
-                    className={`w-4 h-4 transition-transform flex-shrink-0 ${showSpecialtiesDropdown ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                
-                {showSpecialtiesDropdown && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-xl shadow-lg z-10 mt-1 max-h-60 overflow-y-auto">
-                    <div className="p-3">
-                      {formData.mainSpecialty === 'childcare' ? (
-                        <div className="space-y-2">
-                          {childcareSpecialtiesOptions.map(specialty => (
-                            <label key={specialty} className="flex items-center space-x-2 text-sm text-gray-600 hover:bg-gray-50 p-2 rounded">
-                              <input
-                                type="checkbox"
-                                name="childcareSpecialties"
-                                value={specialty}
-                                checked={formData.childcareSpecialties.includes(specialty)}
-                                onChange={handleChange}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span>{specialty}</span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {elderlycareSpecialtiesOptions.map(specialty => (
-                            <label key={specialty} className="flex items-center space-x-2 text-sm text-gray-600 hover:bg-gray-50 p-2 rounded">
-                              <input
-                                type="checkbox"
-                                name="elderlycareSpecialties"
-                                value={specialty}
-                                checked={formData.elderlycareSpecialties.includes(specialty)}
-                                onChange={handleChange}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span>{specialty}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <select 
-                name="availability"
-                value={formData.availability}
-                onChange={handleChange}
-                className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-              >
-                <option value="">Select Availability</option>
-                <option value="Full-time">Full Time</option>
-                <option value="Part-time">Part Time</option>
-                <option value="Weekends">Weekends Only</option>
-                <option value="Flexible">Flexible</option>
-              </select>
-            </div>
-
-            <div>
-              <textarea 
-                name="bio"
-                placeholder="Brief bio about yourself and your caregiving experience..."
-                value={formData.bio}
-                onChange={handleChange}
-                rows={3}
-                className="w-full bg-white border border-gray-300/80 rounded-2xl p-4 text-sm text-gray-500 placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
-              />
-            </div>
-
-            {/* Certifications Upload */}
-            <div>
-              <label className="block text-left text-sm font-medium text-gray-700 mb-2">
-                Upload Certifications (PDF, DOC, JPG, PNG)
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name *
               </label>
-              <input 
-                ref={fileInputRef}
-                name="certifications"
-                type="file" 
-                multiple
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-                className="hidden"
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                placeholder="Doe"
               />
-              <button
-                type="button"
-                onClick={handleFileButtonClick}
-                className="w-full bg-white border border-gray-300/80 h-12 rounded-full px-4 text-sm text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all flex items-center justify-center gap-2 hover:bg-gray-50"
-              >
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span>Click to upload certifications</span>
-              </button>
-              {formData.certifications.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-left text-sm text-gray-600">Selected files:</p>
-                  {formData.certifications.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-sm text-gray-700 truncate max-w-xs">{file.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Admin Notification Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-blue-800 text-sm font-medium">Admin Verification Required</p>
-                  <p className="text-blue-600 text-xs mt-1">
-                    Your profile will be reviewed by our admin team. You'll be able to edit all information later, 
-                    and admins will be notified of any changes for verification.
-                  </p>
-                </div>
-              </div>
+              {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
             </div>
           </div>
-        )}
 
-        <button 
-          type="submit" 
-          disabled={loading || !formData.role}
-          className="mt-6 w-full h-11 rounded-full text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-        >
-          {loading ? 'Creating Account...' : 'Create Account'}
-        </button>
-        
-        <p className="text-gray-500 text-sm mt-3 mb-11">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:text-blue-700 transition-colors font-medium">Sign in</Link>
-        </p>
-      </form>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address *
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              placeholder="john.doe@example.com"
+            />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+          </div>
 
-      {/* Floating Background Elements */}
-      <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-blue-600/10 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute bottom-1/3 right-1/4 w-16 h-16 bg-blue-700/10 rounded-full blur-lg animate-pulse delay-1000"></div>
-      <div className="absolute top-1/3 right-1/3 w-12 h-12 bg-gray-400/10 rounded-full blur-md animate-pulse delay-500"></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password *
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                placeholder="••••••••"
+              />
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            </div>
+            
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password *
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                placeholder="••••••••"
+              />
+              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number *
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              placeholder="+1 (555) 123-4567"
+            />
+            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+              Address *
+            </label>
+            <input
+              id="address"
+              name="address"
+              type="text"
+              value={formData.address}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+              placeholder="123 Main St, Boston, MA 02115"
+            />
+            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+          </div>
+
+          {/* Provider-specific fields */}
+          {showProviderFields && (
+            <>
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="mainSpecialty" className="block text-sm font-medium text-gray-700 mb-2">
+                      Main Specialty *
+                    </label>
+                    <select
+                      id="mainSpecialty"
+                      name="mainSpecialty"
+                      value={formData.mainSpecialty}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    >
+                      <option value="">Select a specialty</option>
+                      {specialties.map(specialty => (
+                        <option key={specialty} value={specialty}>{specialty}</option>
+                      ))}
+                    </select>
+                    {errors.mainSpecialty && <p className="text-red-500 text-sm mt-1">{errors.mainSpecialty}</p>}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
+                      Experience (years) *
+                    </label>
+                    <input
+                      id="experience"
+                      name="experience"
+                      type="number"
+                      value={formData.experience}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      placeholder="5"
+                      min="0"
+                    />
+                    {errors.experience && <p className="text-red-500 text-sm mt-1">{errors.experience}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label htmlFor="hourlyRate" className="block text-sm font-medium text-gray-700 mb-2">
+                      Hourly Rate ($)
+                    </label>
+                    <input
+                      id="hourlyRate"
+                      name="hourlyRate"
+                      type="number"
+                      value={formData.hourlyRate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      placeholder="25"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-2">
+                      Availability
+                    </label>
+                    <select
+                      id="availability"
+                      name="availability"
+                      value={formData.availability}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    >
+                      <option value="Flexible">Flexible</option>
+                      <option value="Full-time">Full Time</option>
+                      <option value="Part-time">Part Time</option>
+                      <option value="Weekends">Weekends Only</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="qualifications" className="block text-sm font-medium text-gray-700 mb-2">
+                    Qualifications
+                  </label>
+                  <textarea
+                    id="qualifications"
+                    name="qualifications"
+                    value={formData.qualifications}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+                    placeholder="CPR Certified, Nursing Degree, etc."
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+                    Bio
+                  </label>
+                  <textarea
+                    id="bio"
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
+                    placeholder="Tell us about your experience and approach to care..."
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-200 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
+        </form>
+
+        {/* Sign In Link */}
+        <div className="text-center mt-6">
+          <p className="text-gray-600">
+            Already have an account?{' '}
+            <Link 
+              to="/login" 
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        {/* Backend Integration Info */}
+        <div className="mt-6 p-3 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-700 text-center">
+            <span className="font-medium">Backend Integration:</span> Registration data will be sent to backend API
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
-// src/pages/careprovider/Reviews.jsx
 import React, { useState, useEffect } from 'react';
 import CareProviderSidebar from '../../components/careprovider/CareProviderSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -14,21 +14,31 @@ const Reviews = () => {
   const [error, setError] = useState('');
   const { user } = useAppContext();
 
-  // Get reviews from localStorage that match this caregiver - FIXED VERSION
+  // Transform backend reviews to frontend format
+  const transformBackendReviews = (backendReviews) => {
+    return backendReviews.map(review => ({
+      id: review.id,
+      bookingId: review.booking_id,
+      client: { name: review.seeker_name || 'Client' },
+      caregiverId: review.resource_id,
+      serviceType: 'Care Service',
+      rating: review.rating,
+      comment: review.comment || 'No comment provided',
+      createdAt: review.created_at,
+      recommend: review.rating >= 4
+    }));
+  };
+
+  // Get demo reviews fallback
   const getDemoReviews = () => {
-    // Get reviews from localStorage (caregiver reviews)
     const storedReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
-    
-    // Also check bookings for ratings (fallback)
     const storedBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
     const bookingsWithRatings = storedBookings.filter(booking => 
       booking.status === 'completed' && booking.rating
     );
 
-    // Combine both sources
     let allReviews = [...storedReviews];
     
-    // Add reviews from bookings if not already in reviews
     bookingsWithRatings.forEach(booking => {
       if (!allReviews.find(r => r.bookingId === booking.id)) {
         allReviews.push({
@@ -46,26 +56,19 @@ const Reviews = () => {
       }
     });
 
-    // Filter reviews for this specific caregiver - FIXED LOGIC
     const caregiverReviews = allReviews.filter(review => {
-      // Match by caregiver ID OR caregiver name (for demo purposes)
       const matchesId = review.caregiverId === user?.id;
       const matchesName = review.caregiverName === user?.name;
-      
-      // For demo, also include reviews where caregiver name contains user's name
       const nameContains = user?.name && review.caregiverName && 
         review.caregiverName.toLowerCase().includes(user.name.toLowerCase());
       
       return matchesId || matchesName || nameContains;
     });
 
-    console.log('Filtered caregiver reviews:', caregiverReviews); // Debug log
-
-    // Calculate stats
     const totalReviews = caregiverReviews.length;
     const averageRating = totalReviews > 0 
       ? caregiverReviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
-      : 4.8; // Default demo rating
+      : 4.8;
 
     const ratingBreakdown = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
     caregiverReviews.forEach(review => {
@@ -74,7 +77,6 @@ const Reviews = () => {
       }
     });
 
-    // Add demo reviews if no reviews exist
     if (caregiverReviews.length === 0) {
       const demoReviews = [
         {
@@ -103,7 +105,6 @@ const Reviews = () => {
         }
       ];
       
-      // Store demo reviews
       localStorage.setItem('caregiverReviews', JSON.stringify([...storedReviews, ...demoReviews]));
       return {
         reviews: demoReviews,
@@ -128,7 +129,6 @@ const Reviews = () => {
   useEffect(() => {
     fetchReviews();
     
-    // Listen for storage changes to update reviews in real-time
     const handleStorageChange = () => {
       fetchReviews();
     };
@@ -143,26 +143,31 @@ const Reviews = () => {
       setError('');
       
       try {
-        const response = await fetch(`/api/careprovider/${user?.id}/reviews`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
+        // Get caregiver ID from user profile
+        const caregiverId = user?.id || '1';
+        const [reviewsResponse, statsResponse] = await Promise.all([
+          apiService.getReviews(caregiverId),
+          apiService.getAverageRating(caregiverId)
+        ]);
+
+        const transformedReviews = transformBackendReviews(reviewsResponse);
+        setReviews(transformedReviews);
+        
+        const ratingBreakdown = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+        transformedReviews.forEach(review => {
+          if (review.rating >= 1 && review.rating <= 5) {
+            ratingBreakdown[review.rating]++;
           }
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setReviews(data.reviews || []);
-          setStats(data.stats || {
-            averageRating: 0,
-            totalReviews: 0,
-            ratingBreakdown: {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
-          });
-        } else {
-          throw new Error('API not available');
-        }
+
+        setStats({
+          averageRating: statsResponse.averageRating || 0,
+          totalReviews: transformedReviews.length,
+          ratingBreakdown
+        });
+
       } catch (apiError) {
-        // Fallback to demo data with localStorage integration
+        console.log('Backend unavailable, using demo mode');
         const demoData = getDemoReviews();
         setReviews(demoData.reviews);
         setStats(demoData.stats);
@@ -238,7 +243,6 @@ const Reviews = () => {
         <CareProviderSidebar />
         
         <div className="flex-1 p-6 lg:p-8">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Reviews & Ratings</h1>
             <p className="text-gray-600 mt-2">What clients say about your service</p>
@@ -256,18 +260,16 @@ const Reviews = () => {
             </div>
           )}
 
-          {/* Demo Mode Indicator */}
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
             <div className="flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Demo Mode: Reviews are synchronized with care seeker reviews in real-time.</span>
+              <span>Integrated Mode: Using backend API with demo fallback</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Stats Card */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-6">
                 <div className="text-center mb-6">
@@ -278,7 +280,6 @@ const Reviews = () => {
                   <p className="text-gray-600 mt-2">{stats.totalReviews} reviews</p>
                 </div>
 
-                {/* Rating Breakdown */}
                 <div className="space-y-3">
                   <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
                     Rating Breakdown
@@ -310,7 +311,6 @@ const Reviews = () => {
                   })}
                 </div>
 
-                {/* Additional Stats */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
@@ -331,7 +331,6 @@ const Reviews = () => {
               </div>
             </div>
 
-            {/* Reviews List */}
             <div className="lg:col-span-3">
               {reviews.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-200">
@@ -375,7 +374,6 @@ const Reviews = () => {
                       
                       <p className="text-gray-700 leading-relaxed">{review.comment}</p>
                       
-                      {/* Review Metadata */}
                       {review.recommend && (
                         <div className="mt-3 flex items-center space-x-2 text-sm text-green-600">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

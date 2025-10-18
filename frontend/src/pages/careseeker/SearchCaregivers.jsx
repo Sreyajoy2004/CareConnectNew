@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const SearchCaregivers = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,8 +23,8 @@ const SearchCaregivers = () => {
   // Mock data - will be replaced by API calls
   const mockCaregivers = [
     {
-      id: 'caregiver1',
-      name: 'Maria Caregiver',
+      id: '1',
+      name: 'Maria Garcia',
       specialty: 'Elderly Care',
       rating: 4.8,
       reviewCount: 24,
@@ -35,11 +36,12 @@ const SearchCaregivers = () => {
       specialties: ['Dementia Care', 'Mobility Assistance', 'Medication Management'],
       responseRate: 95,
       completedJobs: 47,
-      isFavorite: false
+      isFavorite: false,
+      isVerified: true
     },
     {
-      id: 'caregiver2',
-      name: 'John Caregiver',
+      id: '2',
+      name: 'John Smith',
       specialty: 'Child Care',
       rating: 4.9,
       reviewCount: 18,
@@ -51,23 +53,8 @@ const SearchCaregivers = () => {
       specialties: ['Newborn Care', 'Homework Assistance', 'Child Development'],
       responseRate: 98,
       completedJobs: 32,
-      isFavorite: true
-    },
-    {
-      id: 'caregiver3',
-      name: 'Sarah Johnson',
-      specialty: 'Elderly Care',
-      rating: 4.7,
-      reviewCount: 15,
-      hourlyRate: 28,
-      experience: '7 years',
-      qualifications: 'Registered Nurse, CPR Certified',
-      availability: 'Full-time',
-      bio: 'Compassionate RN with extensive experience in elderly care and medication management.',
-      specialties: ['Post-Surgery Care', 'Alzheimer Care', 'Personal Hygiene'],
-      responseRate: 92,
-      completedJobs: 63,
-      isFavorite: false
+      isFavorite: true,
+      isVerified: true
     }
   ];
 
@@ -81,22 +68,31 @@ const SearchCaregivers = () => {
       
       // Try API call first
       try {
-        const response = await fetch('/api/caregivers/search', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await apiService.getCaregivers();
         
-        if (response.ok) {
-          const data = await response.json();
-          setCaregivers(data);
-        } else {
-          throw new Error('API not available');
-        }
+        // Transform backend data to frontend format - UPDATED FOR AMAL'S BACKEND STRUCTURE
+        const transformedCaregivers = response.map(caregiver => ({
+          id: caregiver.id.toString(),
+          name: caregiver.name,
+          specialty: caregiver.specialization || caregiver.category || 'General Care',
+          rating: 4.8, // Default or calculate from reviews
+          reviewCount: 24, // Default or get from reviews count
+          hourlyRate: caregiver.hourly_rate || 25,
+          experience: caregiver.experience_years ? `${caregiver.experience_years} years` : '5 years',
+          qualifications: 'CPR Certified, Nursing Degree', // Default
+          availability: caregiver.available_at || 'Full-time',
+          bio: caregiver.description || 'Experienced caregiver providing quality care services.',
+          specialties: caregiver.specialization ? [caregiver.specialization] : ['General Care'],
+          responseRate: 95, // Default
+          completedJobs: 47, // Default
+          isFavorite: false,
+          isVerified: caregiver.is_verified || true
+        }));
+        
+        setCaregivers(transformedCaregivers);
       } catch (apiError) {
+        console.log('Backend unavailable, using demo mode');
         // Fallback to mock data
-        console.log('Using mock data for caregivers');
         setCaregivers(mockCaregivers);
       }
     } catch (err) {
@@ -111,36 +107,20 @@ const SearchCaregivers = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/caregivers/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          searchTerm,
-          filters
-        })
+      // For now, we'll filter the existing caregivers array
+      // In a real app, this would be an API call with search parameters
+      const filtered = caregivers.filter(caregiver => {
+        const matchesSearch = caregiver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            caregiver.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSpecialty = !filters.specialty || caregiver.specialty === filters.specialty;
+        const matchesAvailability = !filters.availability || caregiver.availability === filters.availability;
+        const matchesRating = caregiver.rating >= filters.minRating;
+        const matchesRate = caregiver.hourlyRate <= filters.maxRate;
+        
+        return matchesSearch && matchesSpecialty && matchesAvailability && matchesRating && matchesRate;
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        setCaregivers(data);
-      } else {
-        // Fallback to filtered mock data
-        const filtered = mockCaregivers.filter(caregiver => {
-          const matchesSearch = caregiver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              caregiver.specialty.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchesSpecialty = !filters.specialty || caregiver.specialty === filters.specialty;
-          const matchesAvailability = !filters.availability || caregiver.availability === filters.availability;
-          const matchesRating = caregiver.rating >= filters.minRating;
-          const matchesRate = caregiver.hourlyRate <= filters.maxRate;
-          
-          return matchesSearch && matchesSpecialty && matchesAvailability && matchesRating && matchesRate;
-        });
-        
-        setCaregivers(filtered);
-      }
+      setCaregivers(filtered);
     } catch (err) {
       console.error('Error searching caregivers:', err);
     } finally {
@@ -150,24 +130,11 @@ const SearchCaregivers = () => {
 
   const toggleFavorite = async (caregiverId) => {
     try {
-      const response = await fetch(`/api/caregivers/${caregiverId}/favorite`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        setCaregivers(prev => prev.map(cg => 
-          cg.id === caregiverId ? { ...cg, isFavorite: !cg.isFavorite } : cg
-        ));
-      } else {
-        // Fallback to local toggle
-        setCaregivers(prev => prev.map(cg => 
-          cg.id === caregiverId ? { ...cg, isFavorite: !cg.isFavorite } : cg
-        ));
-      }
+      // This would be an API call in a real app
+      // For now, we'll just update the local state
+      setCaregivers(prev => prev.map(cg => 
+        cg.id === caregiverId ? { ...cg, isFavorite: !cg.isFavorite } : cg
+      ));
     } catch (err) {
       console.error('Error toggling favorite:', err);
     }

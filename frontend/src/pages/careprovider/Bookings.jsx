@@ -1,7 +1,7 @@
-// src/pages/careprovider/Bookings.jsx
 import React, { useState, useEffect } from 'react';
 import CareProviderSidebar from '../../components/careprovider/CareProviderSidebar';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const Bookings = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -15,14 +15,60 @@ const Bookings = () => {
   const [error, setError] = useState('');
   const { user } = useAppContext();
 
-  // Get demo bookings from localStorage with fallback - PERFECTLY SYNCED WITH CARE SEEKER
+  // Transform backend bookings to frontend format
+  const transformBackendBookings = (backendBookings) => {
+    const now = new Date();
+    
+    const transformed = backendBookings.map(booking => ({
+      id: booking.id,
+      clientName: booking.seeker_name || 'Care Seeker',
+      clientEmail: '', // Backend doesn't provide this
+      serviceType: booking.careprovider_name || 'Care Service',
+      startTime: booking.booking_date,
+      endTime: new Date(new Date(booking.booking_date).getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      duration: 2,
+      totalAmount: 50,
+      status: booking.status,
+      address: 'Address not specified',
+      specialRequirements: '',
+      date: booking.booking_date.split('T')[0],
+      time: new Date(booking.booking_date).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      notes: '',
+      clientId: booking.seeker_id,
+      caregiverId: booking.provider_id,
+      caregiverName: booking.careprovider_name,
+      canCancel: ['pending', 'confirmed'].includes(booking.status)
+    }));
+
+    // Categorize bookings
+    const upcoming = transformed.filter(booking => 
+      booking.status === 'confirmed' && new Date(booking.startTime) > now
+    );
+    
+    const pending = transformed.filter(booking => 
+      booking.status === 'pending'
+    );
+    
+    const completed = transformed.filter(booking => 
+      booking.status === 'completed'
+    );
+
+    const cancelled = transformed.filter(booking => 
+      booking.status === 'cancelled'
+    );
+
+    return { upcoming, pending, completed, cancelled };
+  };
+
+  // Get demo bookings fallback
   const getDemoBookings = () => {
     const storedBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
     
     if (storedBookings.length === 0) {
-      // Create perfectly synchronized demo data that matches care seeker bookings exactly
       const demoBookings = [
-        // Upcoming Bookings (IDs 1, 2)
         {
           id: 1,
           clientName: 'Sarah Family',
@@ -62,163 +108,11 @@ const Bookings = () => {
           caregiverId: 'caregiver2',
           caregiverName: 'John Smith',
           canCancel: false
-        },
-        // Pending Bookings (IDs 3, 4)
-        {
-          id: 3,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Special Needs',
-          startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-          duration: 5,
-          totalAmount: 125,
-          status: 'pending',
-          address: '789 Pine St, Boston, MA',
-          specialRequirements: 'Therapeutic exercises required',
-          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '10:00',
-          notes: 'Session preparation needed',
-          clientId: 'family',
-          caregiverId: 'caregiver3',
-          caregiverName: 'Sarah Johnson',
-          canCancel: false
-        },
-        {
-          id: 4,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
-          duration: 3,
-          totalAmount: 75,
-          status: 'pending',
-          address: '321 Elm St, Boston, MA',
-          specialRequirements: 'Light housekeeping',
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '13:00',
-          notes: 'Weekly visit',
-          clientId: 'family',
-          caregiverId: 'caregiver4',
-          caregiverName: 'David Chen',
-          canCancel: false
-        },
-        // Completed Bookings (IDs 5, 6, 7)
-        {
-          id: 5,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Child Care',
-          startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(),
-          duration: 8,
-          totalAmount: 200,
-          status: 'completed',
-          address: '654 Maple Ave, Cambridge, MA',
-          specialRequirements: 'Homework assistance',
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '08:00',
-          notes: 'Full day care',
-          clientId: 'family',
-          caregiverId: 'caregiver5',
-          caregiverName: 'Lisa Wang',
-          canReview: false,
-          canCancel: false
-        },
-        {
-          id: 6,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
-          duration: 6,
-          totalAmount: 150,
-          status: 'completed',
-          address: '987 Cedar Rd, Boston, MA',
-          specialRequirements: 'Physical therapy exercises',
-          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '11:00',
-          notes: 'Therapy session',
-          clientId: 'family',
-          caregiverId: 'caregiver6',
-          caregiverName: 'Robert Brown',
-          rating: 5,
-          review: 'Excellent care provided. Very professional and caring.',
-          canReview: false,
-          canCancel: false
-        },
-        {
-          id: 7,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Special Needs',
-          startTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-          duration: 4,
-          totalAmount: 120,
-          status: 'completed',
-          address: '147 Walnut St, Boston, MA',
-          specialRequirements: 'Sensory activities',
-          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '15:00',
-          notes: 'Afternoon session',
-          clientId: 'family',
-          caregiverId: 'caregiver7',
-          caregiverName: 'Emily Davis',
-          rating: 4,
-          review: 'Good experience overall. Very patient with special needs.',
-          canReview: false,
-          canCancel: false
-        },
-        // Cancelled Bookings (IDs 8, 9)
-        {
-          id: 8,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Child Care',
-          startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-          duration: 5,
-          totalAmount: 125,
-          status: 'cancelled',
-          address: '258 Birch Ln, Cambridge, MA',
-          cancelledBy: 'careprovider',
-          cancellationReason: 'Caregiver emergency',
-          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '10:00',
-          clientId: 'family',
-          caregiverId: 'caregiver8',
-          caregiverName: 'Michael Taylor',
-          canCancel: false
-        },
-        {
-          id: 9,
-          clientName: 'Sarah Family',
-          clientEmail: 'family@careconnect.com',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-          duration: 4,
-          totalAmount: 100,
-          status: 'cancelled',
-          address: '369 Spruce Dr, Boston, MA',
-          cancelledBy: 'careseeker',
-          cancellationReason: 'Family emergency',
-          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '14:00',
-          clientId: 'family',
-          caregiverId: 'caregiver9',
-          caregiverName: 'Jennifer Lopez',
-          canCancel: false
         }
       ];
 
-      // Store demo bookings in localStorage
       localStorage.setItem('careProviderBookings', JSON.stringify(demoBookings));
 
-      // Categorize the demo bookings
       const now = new Date();
       const demoUpcoming = demoBookings.filter(booking => 
         booking.status === 'confirmed' && new Date(booking.startTime) > now
@@ -227,24 +121,15 @@ const Bookings = () => {
       const demoPending = demoBookings.filter(booking => 
         booking.status === 'pending'
       );
-      
-      const demoCompleted = demoBookings.filter(booking => 
-        booking.status === 'completed'
-      );
-      
-      const demoCancelled = demoBookings.filter(booking => 
-        booking.status === 'cancelled'
-      );
 
       return {
         upcoming: demoUpcoming,
         pending: demoPending,
-        completed: demoCompleted,
-        cancelled: demoCancelled
+        completed: [],
+        cancelled: []
       };
     }
 
-    // Categorize stored bookings
     const now = new Date();
     const upcoming = storedBookings.filter(booking => 
       new Date(booking.startTime) > now && booking.status === 'confirmed'
@@ -268,17 +153,12 @@ const Bookings = () => {
   useEffect(() => {
     fetchBookings();
     
-    // Set up real-time updates by listening to storage changes
     const handleStorageChange = () => {
       fetchBookings();
     };
     
     window.addEventListener('storage', handleStorageChange);
-    
-    // Set up interval to check for booking status changes
-    const interval = setInterval(() => {
-      fetchBookings();
-    }, 5000); // Check every 5 seconds
+    const interval = setInterval(fetchBookings, 5000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -291,21 +171,13 @@ const Bookings = () => {
       setLoading(true);
       
       try {
-        const response = await fetch(`/api/careprovider/${user?.id}/bookings`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setBookings(data);
-        } else {
-          throw new Error('API not available');
-        }
+        // Use backend API
+        const response = await apiService.getProviderBookings();
+        const categorizedBookings = transformBackendBookings(response);
+        setBookings(categorizedBookings);
       } catch (apiError) {
-        // Use demo data with localStorage integration
+        // Fallback to demo data
+        console.log('Backend unavailable, using demo mode');
         setBookings(getDemoBookings());
       }
     } catch (err) {
@@ -318,79 +190,44 @@ const Bookings = () => {
 
   const handleAcceptBooking = async (bookingId) => {
     try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/bookings/${bookingId}/accept`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          fetchBookings();
-          return;
-        }
-      } catch (apiError) {
-        console.log('API not available, using demo mode');
-      }
-
-      // Demo mode - update in localStorage for both care provider and care seeker
+      // Use backend API
+      await apiService.confirmBooking(bookingId);
+      fetchBookings();
+      alert('Booking confirmed successfully!');
+    } catch (error) {
+      console.log('Backend unavailable, using demo mode');
+      // Fallback to demo logic
       const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
       const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
       
-      // Update care provider bookings
       const updatedProviderBookings = providerBookings.map(booking =>
         booking.id === bookingId ? { ...booking, status: 'confirmed' } : booking
       );
       localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
       
-      // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
         booking.id === bookingId ? { ...booking, status: 'confirmed' } : booking
       );
       localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
       
-      // Refresh data
       fetchBookings();
-      
-      // Trigger storage event to update other components
       window.dispatchEvent(new Event('storage'));
-      
       alert('Booking confirmed successfully!');
-      
-    } catch (err) {
-      setError('Failed to accept booking');
-      console.error('Error accepting booking:', err);
     }
   };
 
   const handleDeclineBooking = async (bookingId) => {
     try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/bookings/${bookingId}/decline`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          fetchBookings();
-          return;
-        }
-      } catch (apiError) {
-        console.log('API not available, using demo mode');
-      }
-
-      // Demo mode - update in localStorage
+      // Use backend API - cancel instead of decline
+      await apiService.cancelBooking(bookingId);
+      fetchBookings();
+      alert('Booking declined successfully!');
+    } catch (error) {
+      console.log('Backend unavailable, using demo mode');
+      // Fallback to demo logic
       const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
       const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
       
-      // Update care provider bookings
       const updatedProviderBookings = providerBookings.map(booking =>
         booking.id === bookingId ? { 
           ...booking, 
@@ -401,7 +238,6 @@ const Bookings = () => {
       );
       localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
       
-      // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
         booking.id === bookingId ? { 
           ...booking, 
@@ -415,46 +251,27 @@ const Bookings = () => {
       
       fetchBookings();
       window.dispatchEvent(new Event('storage'));
-      
       alert('Booking declined successfully!');
-      
-    } catch (err) {
-      setError('Failed to decline booking');
-      console.error('Error declining booking:', err);
     }
   };
 
   const handleCompleteBooking = async (bookingId) => {
     try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/bookings/${bookingId}/complete`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          fetchBookings();
-          return;
-        }
-      } catch (apiError) {
-        console.log('API not available, using demo mode');
-      }
-
-      // Demo mode - update in localStorage
+      // Use backend API
+      await apiService.completeBooking(bookingId);
+      fetchBookings();
+      alert('Booking marked as completed!');
+    } catch (error) {
+      console.log('Backend unavailable, using demo mode');
+      // Fallback to demo logic
       const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
       const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
       
-      // Update care provider bookings
       const updatedProviderBookings = providerBookings.map(booking =>
         booking.id === bookingId ? { ...booking, status: 'completed' } : booking
       );
       localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
       
-      // Update care seeker bookings
       const updatedSeekerBookings = seekerBookings.map(booking =>
         booking.id === bookingId ? { 
           ...booking, 
@@ -466,12 +283,7 @@ const Bookings = () => {
       
       fetchBookings();
       window.dispatchEvent(new Event('storage'));
-      
       alert('Booking marked as completed! Care seeker can now leave a review.');
-      
-    } catch (err) {
-      setError('Failed to complete booking');
-      console.error('Error completing booking:', err);
     }
   };
 
@@ -498,7 +310,6 @@ const Bookings = () => {
     return formatDate(dateString);
   };
 
-  // Refresh bookings when tab changes
   useEffect(() => {
     fetchBookings();
   }, [activeTab]);
@@ -525,7 +336,6 @@ const Bookings = () => {
         <CareProviderSidebar />
         
         <div className="flex-1 p-6 lg:p-8">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
             <p className="text-gray-600 mt-2">Manage your appointments and schedules</p>
@@ -537,17 +347,15 @@ const Bookings = () => {
             </div>
           )}
 
-          {/* Demo Mode Indicator */}
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
             <div className="flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Demo Mode: Changes are saved locally and synchronized between care seeker and provider.</span>
+              <span>Integrated Mode: Using backend API with demo fallback</span>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex space-x-4 mb-6 border-b border-gray-200 overflow-x-auto">
             {[
               { key: 'upcoming', label: 'Upcoming', count: bookings.upcoming.length },
@@ -569,7 +377,6 @@ const Bookings = () => {
             ))}
           </div>
 
-          {/* Bookings List */}
           <div className="space-y-6">
             {bookings[activeTab]?.length === 0 ? (
               <div className="text-center py-12">
@@ -588,19 +395,16 @@ const Bookings = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-4 mb-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                          {booking.clientName?.split(' ').map(n => n[0]).join('') || 'SF'}
+                          {booking.clientName?.split(' ').map(n => n[0]).join('') || 'CS'}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{booking.clientName || 'Sarah Family'}</h3>
+                          <h3 className="font-semibold text-gray-900">{booking.clientName}</h3>
                           <p className="text-gray-600">{booking.clientEmail}</p>
-                          <p className="text-gray-500 text-sm capitalize">{booking.serviceType?.toLowerCase() || 'Care Service'}</p>
+                          <p className="text-gray-500 text-sm capitalize">{booking.serviceType?.toLowerCase()}</p>
                           {booking.cancelledBy && (
                             <p className="text-sm text-red-600">
                               Cancelled by: {booking.cancelledBy === 'careprovider' ? 'You' : 'Client'}
                             </p>
-                          )}
-                          {booking.cancellationReason && (
-                            <p className="text-sm text-gray-600">Reason: {booking.cancellationReason}</p>
                           )}
                         </div>
                       </div>
@@ -620,7 +424,7 @@ const Bookings = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-500">Address</p>
-                          <p className="text-sm text-gray-600">{booking.address || 'Address not provided'}</p>
+                          <p className="text-sm text-gray-600">{booking.address}</p>
                         </div>
                         {booking.specialRequirements && (
                           <div>
@@ -629,40 +433,6 @@ const Bookings = () => {
                           </div>
                         )}
                       </div>
-
-                      {booking.notes && (
-                        <div className="mt-4">
-                          <p className="text-sm text-gray-500">Client Notes</p>
-                          <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg mt-1">{booking.notes}</p>
-                        </div>
-                      )}
-
-                      {/* Rating for completed bookings */}
-                      {activeTab === 'completed' && booking.rating && (
-                        <div className="mt-4">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <svg 
-                                  key={star} 
-                                  className={`w-4 h-4 ${star <= booking.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-                                  fill="currentColor" 
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                </svg>
-                              ))}
-                            </div>
-                            <span className="text-sm text-gray-600">Rating: {booking.rating}/5</span>
-                          </div>
-                          {booking.review && (
-                            <div>
-                              <p className="text-sm text-gray-500">Review:</p>
-                              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg mt-1">"{booking.review}"</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                     
                     <div className="flex flex-col items-end space-y-3 w-full lg:w-auto">
@@ -701,12 +471,6 @@ const Bookings = () => {
                           >
                             Mark Complete
                           </button>
-                        )}
-                        
-                        {activeTab === 'completed' && booking.rating && (
-                          <div className="text-center">
-                            <p className="text-sm text-gray-600">Rated {booking.rating}/5</p>
-                          </div>
                         )}
                       </div>
                     </div>

@@ -1,7 +1,8 @@
-// src/pages/careseeker/BookingForm.jsx (UPDATED VERSION)
+// src/pages/careseeker/BookingForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import apiService from '../../services/api';
 
 const BookingForm = () => {
   const { id } = useParams();
@@ -18,22 +19,6 @@ const BookingForm = () => {
     emergencyContact: ''
   });
 
-  // Mock caregiver data
-  const mockCaregivers = {
-    'caregiver': {
-      id: 'caregiver',
-      name: 'Maria Caregiver',
-      specialty: 'Childcare & Elderly Care', 
-      hourlyRate: 25,
-    },
-    'mariagarcia': {
-      id: 'mariagarcia',
-      name: 'Maria Garcia',
-      specialty: 'Elderly Care',
-      hourlyRate: 28,
-    }
-  };
-
   useEffect(() => {
     const fetchProvider = async () => {
       try {
@@ -41,22 +26,12 @@ const BookingForm = () => {
         
         // Try API call first
         try {
-          const response = await fetch(`/api/careproviders/${id}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setProvider(data);
-          } else {
-            throw new Error('API not available');
-          }
+          const data = await apiService.getCaregiver(id);
+          setProvider(data);
         } catch (apiError) {
+          console.log('Backend unavailable, using demo mode');
           // Fallback to mock data
-          const mockProvider = mockCaregivers[id] || {
+          const mockProvider = {
             id: id,
             name: 'Professional Caregiver',
             specialty: 'Care Services',
@@ -84,50 +59,100 @@ const BookingForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create booking data with PENDING status
-    const newBooking = {
-      id: Date.now().toString(),
-      providerId: id,
-      providerName: provider.name,
-      clientId: user?.id,
-      clientName: user?.name,
-      clientEmail: user?.email,
-      ...formData,
-      totalAmount: provider.hourlyRate * parseInt(formData.duration),
-      status: 'pending', // CHANGED TO PENDING
-      bookingId: 'BK' + Date.now(),
-      bookingDate: new Date().toISOString(),
-      startTime: new Date(`${formData.date}T${formData.time}`).toISOString(),
-      serviceType: provider.specialty,
-      specialRequirements: formData.specialInstructions,
-      canCancel: true,
-      canReview: false
-    };
+    try {
+      // Try backend booking first
+      const bookingData = {
+        providerId: id,
+        resourceId: id,
+        bookingDate: new Date(`${formData.date}T${formData.time}`).toISOString()
+      };
 
-    // Save to localStorage for care seeker
-    const existingBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-    existingBookings.push(newBooking);
-    localStorage.setItem('careSeekerBookings', JSON.stringify(existingBookings));
+      const response = await apiService.createBooking(bookingData);
+      
+      if (response.bookingId) {
+        // Also save to localStorage for demo consistency
+        const newBooking = {
+          id: response.bookingId,
+          providerId: id,
+          providerName: provider.name,
+          clientId: user?.id,
+          clientName: user?.name,
+          clientEmail: user?.email,
+          ...formData,
+          totalAmount: provider.hourlyRate * parseInt(formData.duration),
+          status: 'pending',
+          bookingId: response.bookingId,
+          bookingDate: new Date().toISOString(),
+          startTime: new Date(`${formData.date}T${formData.time}`).toISOString(),
+          serviceType: provider.specialty,
+          specialRequirements: formData.specialInstructions,
+          canCancel: true,
+          canReview: false
+        };
 
-    // Also update care provider bookings for synchronization
-    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
-    providerBookings.push({
-      ...newBooking,
-      careSeekerName: user?.name,
-      careSeekerId: user?.id,
-      careSeekerEmail: user?.email
-    });
-    localStorage.setItem('careProviderBookings', JSON.stringify(providerBookings));
+        // Save to localStorage for real-time updates
+        const existingBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+        existingBookings.push(newBooking);
+        localStorage.setItem('careSeekerBookings', JSON.stringify(existingBookings));
 
-    // Trigger storage event to update other components
-    window.dispatchEvent(new Event('storage'));
-    
-    // Redirect to bookings page instead of showing confirmation
-    alert('Booking request sent! The caregiver will confirm your appointment.');
-    navigate('/careseeker/bookings');
+        // Also update care provider bookings for synchronization
+        const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+        providerBookings.push({
+          ...newBooking,
+          careSeekerName: user?.name,
+          careSeekerId: user?.id,
+          careSeekerEmail: user?.email
+        });
+        localStorage.setItem('careProviderBookings', JSON.stringify(providerBookings));
+
+        window.dispatchEvent(new Event('storage'));
+        alert('Booking request sent! The caregiver will confirm your appointment.');
+        navigate('/careseeker/bookings');
+      }
+    } catch (error) {
+      console.log('Backend booking failed, using demo mode');
+      // Fallback to localStorage-only booking
+      const newBooking = {
+        id: Date.now().toString(),
+        providerId: id,
+        providerName: provider.name,
+        clientId: user?.id,
+        clientName: user?.name,
+        clientEmail: user?.email,
+        ...formData,
+        totalAmount: provider.hourlyRate * parseInt(formData.duration),
+        status: 'pending',
+        bookingId: 'BK' + Date.now(),
+        bookingDate: new Date().toISOString(),
+        startTime: new Date(`${formData.date}T${formData.time}`).toISOString(),
+        serviceType: provider.specialty,
+        specialRequirements: formData.specialInstructions,
+        canCancel: true,
+        canReview: false
+      };
+
+      // Save to localStorage for care seeker
+      const existingBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+      existingBookings.push(newBooking);
+      localStorage.setItem('careSeekerBookings', JSON.stringify(existingBookings));
+
+      // Also update care provider bookings for synchronization
+      const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
+      providerBookings.push({
+        ...newBooking,
+        careSeekerName: user?.name,
+        careSeekerId: user?.id,
+        careSeekerEmail: user?.email
+      });
+      localStorage.setItem('careProviderBookings', JSON.stringify(providerBookings));
+
+      window.dispatchEvent(new Event('storage'));
+      alert('Booking request sent! The caregiver will confirm your appointment.');
+      navigate('/careseeker/bookings');
+    }
   };
 
-  // SVG Icons
+  // SVG Icons (keep your existing icons)
   const CalendarIcon = () => (
     <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -160,8 +185,6 @@ const BookingForm = () => {
       </div>
     );
   }
-
-  // REMOVED THE BOOKING CONFIRMATION VIEW - Directly show form
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-gray-100 py-8">
