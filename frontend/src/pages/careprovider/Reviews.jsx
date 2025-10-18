@@ -14,7 +14,7 @@ const Reviews = () => {
   const [error, setError] = useState('');
   const { user } = useAppContext();
 
-  // Get reviews from localStorage that match this caregiver
+  // Get reviews from localStorage that match this caregiver - FIXED VERSION
   const getDemoReviews = () => {
     // Get reviews from localStorage (caregiver reviews)
     const storedReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
@@ -46,10 +46,20 @@ const Reviews = () => {
       }
     });
 
-    // Filter reviews for this specific caregiver
-    const caregiverReviews = allReviews.filter(review => 
-      review.caregiverId === user?.id || review.caregiverName === user?.name
-    );
+    // Filter reviews for this specific caregiver - FIXED LOGIC
+    const caregiverReviews = allReviews.filter(review => {
+      // Match by caregiver ID OR caregiver name (for demo purposes)
+      const matchesId = review.caregiverId === user?.id;
+      const matchesName = review.caregiverName === user?.name;
+      
+      // For demo, also include reviews where caregiver name contains user's name
+      const nameContains = user?.name && review.caregiverName && 
+        review.caregiverName.toLowerCase().includes(user.name.toLowerCase());
+      
+      return matchesId || matchesName || nameContains;
+    });
+
+    console.log('Filtered caregiver reviews:', caregiverReviews); // Debug log
 
     // Calculate stats
     const totalReviews = caregiverReviews.length;
@@ -72,7 +82,7 @@ const Reviews = () => {
           bookingId: 'demo-1',
           client: { name: 'Emily Johnson' },
           caregiverId: user?.id,
-          caregiverName: user?.name,
+          caregiverName: user?.name || 'Maria Caregiver',
           serviceType: 'Elderly Care',
           rating: 5,
           comment: 'Maria was absolutely wonderful with my elderly mother. She was patient, professional, and went above and beyond her duties.',
@@ -84,7 +94,7 @@ const Reviews = () => {
           bookingId: 'demo-2',
           client: { name: 'Robert Chen' },
           caregiverId: user?.id,
-          caregiverName: user?.name,
+          caregiverName: user?.name || 'Maria Caregiver',
           serviceType: 'Child Care',
           rating: 4,
           comment: 'Great with kids! My children really enjoyed their time. Very reliable and professional.',

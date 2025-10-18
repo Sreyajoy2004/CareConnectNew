@@ -1,3 +1,4 @@
+// src/pages/careseeker/Reviews.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
@@ -11,12 +12,6 @@ const CareSeekerReviews = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingReview, setEditingReview] = useState(null);
-  const [editData, setEditData] = useState({
-    rating: 5,
-    comment: ''
-  });
   const { user } = useAppContext();
   const navigate = useNavigate();
 
@@ -98,134 +93,6 @@ const CareSeekerReviews = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEditReview = (review) => {
-    console.log('Editing review:', review);
-    setEditingReview(review);
-    setEditData({
-      rating: review.rating,
-      comment: review.comment
-    });
-    setShowEditModal(true);
-  };
-
-  const handleUpdateReview = async () => {
-    console.log('Updating review with data:', editData);
-    if (!editingReview) return;
-
-    try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/reviews/${editingReview.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            rating: editData.rating,
-            comment: editData.comment,
-            caregiverId: editingReview.caregiverId
-          })
-        });
-        
-        if (response.ok) {
-          await updateLocalStorageAfterEdit();
-        }
-      } catch (apiError) {
-        // Demo mode - update in localStorage
-        await updateLocalStorageAfterEdit();
-      }
-    } catch (err) {
-      console.error('Error updating review:', err);
-      setError('Failed to update review');
-    }
-  };
-
-  const updateLocalStorageAfterEdit = async () => {
-    console.log('Updating localStorage after edit');
-    
-    // Update care seeker reviews
-    const seekerReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
-    const updatedSeekerReviews = seekerReviews.map(review =>
-      review.id === editingReview.id 
-        ? { 
-            ...review, 
-            rating: editData.rating, 
-            comment: editData.comment,
-            updatedAt: new Date().toISOString()
-          } 
-        : review
-    );
-    localStorage.setItem('careSeekerReviews', JSON.stringify(updatedSeekerReviews));
-
-    // Update care provider reviews
-    const providerReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
-    const updatedProviderReviews = providerReviews.map(review =>
-      review.id === editingReview.id 
-        ? { 
-            ...review, 
-            rating: editData.rating, 
-            comment: editData.comment,
-            updatedAt: new Date().toISOString()
-          } 
-        : review
-    );
-    localStorage.setItem('caregiverReviews', JSON.stringify(updatedProviderReviews));
-
-    // Update bookings with review data
-    const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-    const updatedSeekerBookings = seekerBookings.map(booking =>
-      booking.id === editingReview.bookingId 
-        ? { 
-            ...booking, 
-            rating: editData.rating, 
-            review: editData.comment
-          } 
-        : booking
-    );
-    localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
-
-    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
-    const updatedProviderBookings = providerBookings.map(booking =>
-      booking.id === editingReview.bookingId 
-        ? { 
-            ...booking, 
-            rating: editData.rating, 
-            review: editData.comment
-          } 
-        : booking
-    );
-    localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
-
-    // Update the component state immediately
-    const updatedReviews = reviews.map(review => 
-      review.id === editingReview.id 
-        ? { 
-            ...review, 
-            rating: editData.rating, 
-            comment: editData.comment,
-            updatedAt: new Date().toISOString()
-          } 
-        : review
-    );
-    
-    setReviews(updatedReviews);
-    
-    // Update stats based on updated reviews
-    setStats({
-      totalReviews: updatedReviews.length,
-      averageRating: updatedReviews.length > 0 
-        ? updatedReviews.reduce((acc, review) => acc + review.rating, 0) / updatedReviews.length 
-        : 0
-    });
-
-    setShowEditModal(false);
-    setEditingReview(null);
-    window.dispatchEvent(new Event('storage'));
-    
-    alert('Review updated successfully!');
   };
 
   const handleDeleteReview = async (reviewId) => {
@@ -333,7 +200,7 @@ const CareSeekerReviews = () => {
     });
   };
 
-  const StarRating = ({ rating, size = 'sm', interactive = false, onRatingChange }) => {
+  const StarRating = ({ rating, size = 'sm' }) => {
     const sizeClasses = {
       sm: 'w-4 h-4',
       md: 'w-5 h-5',
@@ -343,20 +210,14 @@ const CareSeekerReviews = () => {
     return (
       <div className="flex items-center space-x-1">
         {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type={interactive ? "button" : "div"}
-            onClick={interactive ? () => onRatingChange(star) : undefined}
-            className={interactive ? "focus:outline-none transition-transform hover:scale-110" : ""}
+          <svg 
+            key={star} 
+            className={`${sizeClasses[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+            fill="currentColor" 
+            viewBox="0 0 20 20"
           >
-            <svg 
-              className={`${sizeClasses[size]} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
-            >
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-            </svg>
-          </button>
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
         ))}
       </div>
     );
@@ -488,7 +349,12 @@ const CareSeekerReviews = () => {
                       {review.canEdit && (
                         <div className="flex justify-end space-x-2">
                           <button 
-                            onClick={() => handleEditReview(review)}
+                            onClick={() => navigate('/careseeker/review', { 
+                              state: { 
+                                booking: review, 
+                                editing: true 
+                              } 
+                            })}
                             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
                           >
                             Edit Review
@@ -509,62 +375,6 @@ const CareSeekerReviews = () => {
           </div>
         </div>
       </div>
-
-      {/* Edit Review Modal */}
-      {showEditModal && editingReview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Edit Review for {editingReview.caregiverName}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setEditData({...editData, rating: star})}
-                      className="text-2xl focus:outline-none"
-                    >
-                      {star <= editData.rating ? '⭐' : '☆'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                <textarea 
-                  value={editData.comment}
-                  onChange={(e) => setEditData({...editData, comment: e.target.value})}
-                  rows="4"
-                  placeholder="Share your experience with this caregiver..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl font-medium hover:bg-gray-400 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleUpdateReview}
-                disabled={!editData.comment.trim()}
-                className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Update Review
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

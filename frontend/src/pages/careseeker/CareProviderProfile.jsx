@@ -11,14 +11,6 @@ const CareProviderProfileRead = () => {
   const [caregiver, setCaregiver] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState({
-    date: '',
-    time: '',
-    duration: '2',
-    notes: '',
-    serviceType: 'childcare'
-  });
 
   // Fetch caregiver profile data
   useEffect(() => {
@@ -52,59 +44,7 @@ const CareProviderProfileRead = () => {
       navigate('/login', { state: { from: `/careprovider/${id}` } });
       return;
     }
-    setShowBookingModal(true);
-  };
-
-  const handleConfirmBooking = async () => {
-    try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          caregiverId: id,
-          caregiverName: caregiver.name,
-          clientId: user.id,
-          clientName: user.name,
-          clientEmail: user.email,
-          serviceType: bookingDetails.serviceType,
-          date: bookingDetails.date,
-          time: bookingDetails.time,
-          duration: parseInt(bookingDetails.duration),
-          notes: bookingDetails.notes,
-          status: 'pending',
-          totalAmount: calculateTotalAmount(caregiver.hourlyRate, bookingDetails.duration)
-        })
-      });
-
-      if (response.ok) {
-        const bookingData = await response.json();
-        alert('Booking request sent successfully! The caregiver will confirm soon.');
-        setShowBookingModal(false);
-        setBookingDetails({ 
-          date: '', 
-          time: '', 
-          duration: '2', 
-          notes: '',
-          serviceType: 'childcare'
-        });
-        
-        // Navigate to care seeker bookings page
-        navigate('/careseeker/bookings');
-      } else {
-        throw new Error('Failed to create booking');
-      }
-    } catch (error) {
-      alert('Error sending booking request. Please try again.');
-      console.error('Booking error:', error);
-    }
-  };
-
-  const calculateTotalAmount = (hourlyRate, duration) => {
-    const rate = parseInt(hourlyRate.replace('$', '').replace('/hr', ''));
-    return rate * parseInt(duration);
+    navigate(`/booking/${id}`);
   };
 
   const getInitials = (name) => {
@@ -372,100 +312,6 @@ const CareProviderProfileRead = () => {
           </div>
         </div>
       </div>
-
-      {/* Booking Modal */}
-      {showBookingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Book Care Session with {caregiver.name}</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Service Type</label>
-                <select 
-                  value={bookingDetails.serviceType}
-                  onChange={(e) => setBookingDetails({...bookingDetails, serviceType: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                >
-                  <option value="childcare">Child Care</option>
-                  <option value="elderlycare">Elderly Care</option>
-                  <option value="specialneeds">Special Needs</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                <input 
-                  type="date"
-                  value={bookingDetails.date}
-                  onChange={(e) => setBookingDetails({...bookingDetails, date: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <input 
-                  type="time"
-                  value={bookingDetails.time}
-                  onChange={(e) => setBookingDetails({...bookingDetails, time: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
-                <select 
-                  value={bookingDetails.duration}
-                  onChange={(e) => setBookingDetails({...bookingDetails, duration: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                >
-                  <option value="1">1 hour</option>
-                  <option value="2">2 hours</option>
-                  <option value="3">3 hours</option>
-                  <option value="4">4 hours</option>
-                  <option value="6">6 hours</option>
-                  <option value="8">8 hours</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Special Notes</label>
-                <textarea 
-                  value={bookingDetails.notes}
-                  onChange={(e) => setBookingDetails({...bookingDetails, notes: e.target.value})}
-                  rows="3"
-                  placeholder="Any special requirements or notes..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
-                />
-              </div>
-              
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  Estimated Cost: ${calculateTotalAmount(caregiver.hourlyRate, bookingDetails.duration)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => setShowBookingModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl font-medium hover:bg-gray-400 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleConfirmBooking}
-                disabled={!bookingDetails.date || !bookingDetails.time}
-                className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Confirm Booking
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

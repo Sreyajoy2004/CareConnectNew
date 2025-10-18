@@ -14,19 +14,13 @@ const CareSeekerBookings = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [reviewData, setReviewData] = useState({
-    rating: 5,
-    comment: ''
-  });
   const { user } = useAppContext();
   const navigate = useNavigate();
 
-  // Enhanced demo data with more bookings for testing
+  // Get bookings from localStorage - FIXED VERSION
   const getMockBookings = () => {
-    // Get bookings from localStorage for demo
     const storedBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
+    console.log('Stored bookings:', storedBookings); // Debug log
     
     const now = new Date();
     
@@ -47,205 +41,7 @@ const CareSeekerBookings = () => {
       booking.status === 'cancelled'
     );
 
-    // Enhanced demo data with more bookings for testing all scenarios
-    if (storedBookings.length === 0) {
-      const demoBookings = [
-        // Upcoming Bookings (2 bookings)
-        {
-          id: 1,
-          caregiverId: 'caregiver1',
-          caregiverName: 'Maria Garcia',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-          duration: 4,
-          totalAmount: 100,
-          status: 'confirmed',
-          address: '123 Main St, Boston, MA',
-          specialRequirements: 'Help with medication at 2 PM',
-          canCancel: true,
-          date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '14:00',
-          notes: 'Please arrive 10 minutes early'
-        },
-        {
-          id: 2,
-          caregiverId: 'caregiver2',
-          caregiverName: 'John Smith',
-          serviceType: 'Child Care',
-          startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
-          duration: 6,
-          totalAmount: 150,
-          status: 'confirmed',
-          address: '456 Oak Ave, Cambridge, MA',
-          specialRequirements: 'Vegetarian meals only',
-          canCancel: true,
-          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '09:00',
-          notes: 'Child has peanut allergy'
-        },
-        // Pending Bookings (2 bookings)
-        {
-          id: 3,
-          caregiverId: 'caregiver3',
-          caregiverName: 'Sarah Johnson',
-          serviceType: 'Special Needs',
-          startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-          duration: 5,
-          totalAmount: 125,
-          status: 'pending',
-          address: '789 Pine St, Boston, MA',
-          specialRequirements: 'Therapeutic exercises required',
-          canCancel: true,
-          date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '10:00',
-          notes: 'Session preparation needed'
-        },
-        {
-          id: 4,
-          caregiverId: 'caregiver4',
-          caregiverName: 'David Chen',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
-          duration: 3,
-          totalAmount: 75,
-          status: 'pending',
-          address: '321 Elm St, Boston, MA',
-          specialRequirements: 'Light housekeeping',
-          canCancel: true,
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '13:00',
-          notes: 'Weekly visit'
-        },
-        // Completed Bookings (3 bookings - with different review statuses)
-        {
-          id: 5,
-          caregiverId: 'caregiver5',
-          caregiverName: 'Lisa Wang',
-          serviceType: 'Child Care',
-          startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000).toISOString(),
-          duration: 8,
-          totalAmount: 200,
-          status: 'completed',
-          address: '654 Maple Ave, Cambridge, MA',
-          specialRequirements: 'Homework assistance',
-          canReview: true,
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '08:00',
-          notes: 'Full day care'
-        },
-        {
-          id: 6,
-          caregiverId: 'caregiver6',
-          caregiverName: 'Robert Brown',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
-          duration: 6,
-          totalAmount: 150,
-          status: 'completed',
-          address: '987 Cedar Rd, Boston, MA',
-          specialRequirements: 'Physical therapy exercises',
-          canReview: false,
-          rating: 5,
-          review: 'Excellent care provided. Very professional and caring.',
-          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '11:00',
-          notes: 'Therapy session'
-        },
-        {
-          id: 7,
-          caregiverId: 'caregiver7',
-          caregiverName: 'Emily Davis',
-          serviceType: 'Special Needs',
-          startTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-          duration: 4,
-          totalAmount: 120,
-          status: 'completed',
-          address: '147 Walnut St, Boston, MA',
-          specialRequirements: 'Sensory activities',
-          canReview: false,
-          rating: 4,
-          review: 'Good experience overall. Very patient with special needs.',
-          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '15:00',
-          notes: 'Afternoon session'
-        },
-        // Cancelled Bookings (2 bookings - cancelled by different parties)
-        {
-          id: 8,
-          caregiverId: 'caregiver8',
-          caregiverName: 'Michael Taylor',
-          serviceType: 'Child Care',
-          startTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
-          duration: 5,
-          totalAmount: 125,
-          status: 'cancelled',
-          address: '258 Birch Ln, Cambridge, MA',
-          cancelledBy: 'careprovider',
-          cancellationReason: 'Caregiver emergency',
-          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '10:00'
-        },
-        {
-          id: 9,
-          caregiverId: 'caregiver9',
-          caregiverName: 'Jennifer Lopez',
-          serviceType: 'Elderly Care',
-          startTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
-          duration: 4,
-          totalAmount: 100,
-          status: 'cancelled',
-          address: '369 Spruce Dr, Boston, MA',
-          cancelledBy: 'careseeker',
-          cancellationReason: 'Family emergency',
-          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          time: '14:00'
-        }
-      ];
-
-      // Store demo bookings in localStorage
-      localStorage.setItem('careSeekerBookings', JSON.stringify(demoBookings));
-      
-      // Also store in careProviderBookings for synchronization
-      const providerBookings = demoBookings.map(booking => ({
-        ...booking,
-        careSeekerName: user?.name || 'Care Seeker',
-        careSeekerId: user?.id || 'careseeker1'
-      }));
-      localStorage.setItem('careProviderBookings', JSON.stringify(providerBookings));
-
-      // Categorize the demo bookings
-      const demoUpcoming = demoBookings.filter(booking => 
-        booking.status === 'confirmed' && new Date(booking.startTime) > now
-      );
-      
-      const demoPending = demoBookings.filter(booking => 
-        booking.status === 'pending'
-      );
-      
-      const demoCompleted = demoBookings.filter(booking => 
-        booking.status === 'completed'
-      );
-      
-      const demoCancelled = demoBookings.filter(booking => 
-        booking.status === 'cancelled'
-      );
-
-      return {
-        upcoming: demoUpcoming,
-        pending: demoPending,
-        completed: demoCompleted,
-        cancelled: demoCancelled
-      };
-    }
+    console.log('Categorized:', { upcoming, pending, completed, cancelled }); // Debug log
 
     return { upcoming, pending, completed, cancelled };
   };
@@ -255,6 +51,7 @@ const CareSeekerBookings = () => {
     
     // Listen for storage changes to get real-time updates
     const handleStorageChange = () => {
+      console.log('Storage changed, refreshing bookings...');
       fetchBookings();
     };
     
@@ -263,7 +60,7 @@ const CareSeekerBookings = () => {
     // Set up interval to check for updates
     const interval = setInterval(() => {
       fetchBookings();
-    }, 5000);
+    }, 3000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -291,10 +88,13 @@ const CareSeekerBookings = () => {
         }
       } catch (apiError) {
         // Use mock data with localStorage integration
-        setBookings(getMockBookings());
+        const mockBookings = getMockBookings();
+        console.log('Setting mock bookings:', mockBookings); // Debug log
+        setBookings(mockBookings);
       }
     } catch (err) {
       setError('Failed to load bookings');
+      console.error('Error fetching bookings:', err);
     } finally {
       setLoading(false);
     }
@@ -368,115 +168,6 @@ const CareSeekerBookings = () => {
 
   const handleContactCaregiver = (caregiverId) => {
     navigate(`/careprovider/${caregiverId}`);
-  };
-
-  const handleLeaveReview = (booking) => {
-    setSelectedBooking(booking);
-    setReviewData({
-      rating: 5,
-      comment: ''
-    });
-    setShowReviewModal(true);
-  };
-
-  const handleSubmitReview = async () => {
-    if (!selectedBooking) return;
-
-    try {
-      // Try API first
-      try {
-        const response = await fetch(`/api/bookings/${selectedBooking.id}/review`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            rating: reviewData.rating,
-            comment: reviewData.comment,
-            caregiverId: selectedBooking.caregiverId,
-            recommend: true
-          })
-        });
-        
-        if (response.ok) {
-          await updateLocalStorageAfterReview();
-        }
-      } catch (apiError) {
-        // Demo mode - update in localStorage
-        await updateLocalStorageAfterReview();
-      }
-    } catch (err) {
-      console.error('Error submitting review:', err);
-      setError('Failed to submit review');
-    }
-  };
-
-  const updateLocalStorageAfterReview = async () => {
-    // Create a consistent review ID based on booking ID
-    const reviewId = parseInt(selectedBooking.id) * 10; // Create unique but consistent ID
-    
-    // Update care seeker bookings
-    const seekerBookings = JSON.parse(localStorage.getItem('careSeekerBookings') || '[]');
-    const updatedSeekerBookings = seekerBookings.map(booking =>
-      booking.id === selectedBooking.id 
-        ? { 
-            ...booking, 
-            rating: reviewData.rating, 
-            review: reviewData.comment, 
-            canReview: false 
-          } 
-        : booking
-    );
-    localStorage.setItem('careSeekerBookings', JSON.stringify(updatedSeekerBookings));
-
-    // Update care provider bookings
-    const providerBookings = JSON.parse(localStorage.getItem('careProviderBookings') || '[]');
-    const updatedProviderBookings = providerBookings.map(booking =>
-      booking.id === selectedBooking.id 
-        ? { 
-            ...booking, 
-            rating: reviewData.rating, 
-            review: reviewData.comment 
-          } 
-        : booking
-    );
-    localStorage.setItem('careProviderBookings', JSON.stringify(updatedProviderBookings));
-
-    // Update reviews in localStorage - Use consistent ID structure
-    const existingReviews = JSON.parse(localStorage.getItem('careSeekerReviews') || '[]');
-    const newReview = {
-      id: reviewId, // Use consistent ID instead of Date.now()
-      bookingId: selectedBooking.id,
-      caregiverId: selectedBooking.caregiverId,
-      caregiverName: selectedBooking.caregiverName,
-      serviceType: selectedBooking.serviceType,
-      rating: reviewData.rating,
-      comment: reviewData.comment,
-      recommend: true,
-      createdAt: new Date().toISOString(), // Use createdAt instead of date
-      canEdit: true, // Add canEdit flag
-      clientName: user?.name || 'Care Seeker'
-    };
-    
-    // Remove any existing review for this booking and add new one
-    const filteredReviews = existingReviews.filter(review => review.bookingId !== selectedBooking.id);
-    localStorage.setItem('careSeekerReviews', JSON.stringify([...filteredReviews, newReview]));
-
-    // Also update caregiver reviews
-    const caregiverReviews = JSON.parse(localStorage.getItem('caregiverReviews') || '[]');
-    const filteredCaregiverReviews = caregiverReviews.filter(review => review.bookingId !== selectedBooking.id);
-    localStorage.setItem('caregiverReviews', JSON.stringify([...filteredCaregiverReviews, {
-      ...newReview,
-      client: { name: user?.name || 'Care Seeker' }
-    }]));
-
-    setShowReviewModal(false);
-    setSelectedBooking(null);
-    fetchBookings();
-    window.dispatchEvent(new Event('storage'));
-    
-    alert('Thank you for your review!');
   };
 
   const formatDate = (dateString) => {
@@ -600,11 +291,11 @@ const CareSeekerBookings = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-4 mb-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                          {booking.caregiverName.split(' ').map(n => n[0]).join('')}
+                          {booking.caregiverName?.split(' ').map(n => n[0]).join('') || 'CG'}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{booking.caregiverName}</h3>
-                          <p className="text-gray-600 capitalize">{booking.serviceType?.toLowerCase()}</p>
+                          <h3 className="font-semibold text-gray-900">{booking.caregiverName || 'Caregiver'}</h3>
+                          <p className="text-gray-600 capitalize">{booking.serviceType?.toLowerCase() || 'care service'}</p>
                           {booking.cancelledBy && (
                             <p className="text-sm text-red-600">
                               Cancelled by: {booking.cancelledBy === 'careprovider' ? 'Caregiver' : 'You'}
@@ -631,7 +322,7 @@ const CareSeekerBookings = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-500">Address</p>
-                          <p className="text-sm text-gray-600">{booking.address}</p>
+                          <p className="text-sm text-gray-600">{booking.address || 'Address not specified'}</p>
                         </div>
                         {booking.specialRequirements && (
                           <div>
@@ -698,7 +389,7 @@ const CareSeekerBookings = () => {
                         )}
                         
                         {/* Cancel button - Only for pending and upcoming bookings */}
-                        {(activeTab === 'pending' || activeTab === 'upcoming') && booking.canCancel && (
+                        {(activeTab === 'pending' || activeTab === 'upcoming') && booking.canCancel !== false && (
                           <button 
                             onClick={() => handleCancelBooking(booking.id)}
                             className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors w-full lg:w-auto"
@@ -710,7 +401,7 @@ const CareSeekerBookings = () => {
                         {/* Leave Review button - Only for completed bookings without review */}
                         {activeTab === 'completed' && booking.canReview && !booking.rating && (
                           <button 
-                            onClick={() => handleLeaveReview(booking)}
+                            onClick={() => navigate('/careseeker/review', { state: { booking } })}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full lg:w-auto"
                           >
                             Leave Review
@@ -725,62 +416,6 @@ const CareSeekerBookings = () => {
           </div>
         </div>
       </div>
-
-      {/* Review Modal */}
-      {showReviewModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Leave Review for {selectedBooking.caregiverName}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewData({...reviewData, rating: star})}
-                      className="text-2xl focus:outline-none"
-                    >
-                      {star <= reviewData.rating ? '⭐' : '☆'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Comment</label>
-                <textarea 
-                  value={reviewData.comment}
-                  onChange={(e) => setReviewData({...reviewData, comment: e.target.value})}
-                  rows="4"
-                  placeholder="Share your experience with this caregiver..."
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => setShowReviewModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl font-medium hover:bg-gray-400 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSubmitReview}
-                disabled={!reviewData.comment.trim()}
-                className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Submit Review
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

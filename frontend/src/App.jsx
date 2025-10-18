@@ -19,6 +19,8 @@ import CareSeekerProfile from './pages/careseeker/CareSeekerProfile'
 import SearchCaregivers from './pages/careseeker/SearchCaregivers'
 import CareSeekerReviews from './pages/careseeker/Reviews'
 import CareProviderProfileRead from './pages/careseeker/CareProviderProfileRead'
+import BookingForm from './pages/careseeker/BookingForm'
+import ReviewForm from './pages/careseeker/ReviewForm' // ADD THIS IMPORT
 
 // Import CareSeekerBookings with proper named import
 import CareSeekerBookings from './pages/careseeker/Bookings'
@@ -139,6 +141,26 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRole="careseeker">
               <CareSeekerReviews/>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Booking Form Route */}
+        <Route 
+          path="/booking/:id" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <BookingForm/>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Review Form Route - ADD THIS ROUTE */}
+        <Route 
+          path="/careseeker/review" 
+          element={
+            <ProtectedRoute requiredRole="careseeker">
+              <ReviewForm/>
             </ProtectedRoute>
           } 
         />

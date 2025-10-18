@@ -1,3 +1,4 @@
+// src/pages/careseeker/SearchCaregivers.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CareSeekerSidebar from '../../components/careseeker/CareSeekerSidebar';
@@ -400,15 +401,14 @@ const SearchCaregivers = () => {
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      {/* UPDATED NAVIGATION PATH */}
-                        <button
-                          onClick={() => navigate(`/careprovider/${caregiver.id}`)}
-                          className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
->
-                              View Profile
-                        </button>
                       <button
-                        onClick={() => navigate(`/booking/new?caregiverId=${caregiver.id}`)}
+                        onClick={() => navigate(`/careprovider/${caregiver.id}`)}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={() => navigate(`/booking/${caregiver.id}`)}
                         className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
                       >
                         Book Now
