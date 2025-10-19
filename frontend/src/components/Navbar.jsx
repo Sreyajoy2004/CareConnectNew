@@ -1,0 +1,300 @@
+// src/components/Navbar.jsx
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { assets } from "../assets/assets";
+import { useAppContext } from "../context/AppContext";
+
+const Navbar = () => {
+  const [open, setOpen] = React.useState(false);             // mobile menu
+  const [servicesOpen, setServicesOpen] = React.useState(false); // services dropdown
+  const [profileOpen, setProfileOpen] = React.useState(false); // profile dropdown
+  const containerRef = React.useRef(null);
+  const servicesRef = React.useRef(null);
+  const profileRef = React.useRef(null);
+
+  const { user, role, logout } = useAppContext();
+  const navigate = useNavigate();
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    function handleDocClick(e) {
+      if (servicesRef.current && !servicesRef.current.contains(e.target)) {
+        setServicesOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    return () => document.removeEventListener("mousedown", handleDocClick);
+  }, []);
+
+  // Smooth scroll to about section
+  const scrollToAbout = () => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    
+    // If we're not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        const element = document.getElementById('about');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Already on home page, just scroll
+      const element = document.getElementById('about');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Smooth scroll to footer section
+  const scrollToFooter = () => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    
+    // If we're not on home page, navigate to home first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation then scroll
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    } else {
+      // Already on home page, just scroll to bottom
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
+  // helper to close menus when navigating
+  const navAndClose = (path) => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    setOpen(false);
+    setServicesOpen(false);
+    setProfileOpen(false);
+    logout();
+    navigate("/");
+  };
+
+  // Get dashboard route based on user role
+  const getDashboardRoute = () => {
+    switch (role) {
+      case 'careseeker':
+        return '/careseeker/dashboard';
+      case 'careprovider':
+        return '/careprovider/dashboard';
+      case 'admin':
+        return '/admin/dashboard';
+      default:
+        return '/';
+    }
+  };
+
+  return (
+    <nav
+      ref={containerRef}
+      className="flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-200 bg-white relative shadow-sm transition-all"
+    >
+      {/* Logo + Brand */}
+      <NavLink to="/" onClick={() => { setOpen(false); setServicesOpen(false); setProfileOpen(false); }} className="flex items-center gap-2">
+        <img className="h-12 w-auto" src={assets.logotitle} alt="CareConnect Logo" />
+        <span className="text-2xl font-bold text-[--color-primary]">CareConnect</span>
+      </NavLink>
+
+      {/* Desktop Menu */}
+      <div className="hidden sm:flex items-center gap-10 font-medium">
+        <NavLink to="/" className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200">Home</NavLink>
+        
+        {/* About - Updated to use smooth scroll */}
+        <button 
+          onClick={scrollToAbout}
+          className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200"
+        >
+          About
+        </button>
+
+        {/* Services dropdown: supports click + hover */}
+        <div
+          ref={servicesRef}
+          className="relative"
+        >
+          <button
+            aria-expanded={servicesOpen}
+            onClick={() => setServicesOpen(prev => !prev)}
+            onMouseEnter={() => setServicesOpen(true)}
+            className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 flex items-center gap-1"
+          >
+            Services
+            <svg className={`w-4 h-4 transform transition-transform duration-200 ${servicesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Dropdown - toggled by servicesOpen */}
+          <div
+            className={`absolute ${servicesOpen ? "block" : "hidden"} bg-white border border-gray-200 shadow-lg mt-2 rounded-lg min-w-[200px] overflow-hidden z-40`}
+            role="menu"
+            onMouseEnter={() => setServicesOpen(true)}
+            onMouseLeave={() => setServicesOpen(false)}
+          >
+            <NavLink
+              to="/childcare"
+              onClick={() => setServicesOpen(false)}
+              className={({ isActive }) =>
+                `block px-5 py-3 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
+                  isActive
+                    ? "bg-[--color-primary] text-white"
+                    : "text-blue-900 hover:bg-blue-50 hover:text-[--color-primary]"
+                }`
+              }
+            >
+              Childcare
+            </NavLink>
+
+            <NavLink
+              to="/elderlycare"
+              onClick={() => setServicesOpen(false)}
+              className={({ isActive }) =>
+                `block px-5 py-3 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
+                  isActive
+                    ? "bg-[--color-primary] text-white"
+                    : "text-blue-900 hover:bg-blue-50 hover:text-[--color-primary]"
+                }`
+              }
+            >
+              Elderly Care
+            </NavLink>
+          </div>
+        </div>
+
+        {/* Contact - Updated to use smooth scroll to footer */}
+        <button 
+          onClick={scrollToFooter}
+          className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200"
+        >
+          Contact
+        </button>
+
+        {/* Login Button - Always shown when user is not logged in */}
+        {!user && (
+          <button
+            onClick={() => navigate("/login")}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 transition-colors duration-200 text-white font-semibold rounded-full shadow-md hover:shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Login
+          </button>
+        )}
+
+        {/* Profile Dropdown - Only shown when user is logged in */}
+        {user && (
+          <div ref={profileRef} className="relative">
+            <button 
+              onClick={() => setProfileOpen(prev => !prev)}
+              onMouseEnter={() => setProfileOpen(true)}
+              className="flex items-center gap-2 cursor-pointer transition-transform duration-200 hover:scale-105"
+            >
+              <img src={assets.profile_icon} className="w-10 h-10 rounded-full border-2 border-gray-200 hover:border-blue-300 transition-colors" alt="Profile" />
+            </button>
+
+            <div 
+              className={`absolute top-12 right-0 bg-white shadow-xl border border-gray-200 py-2 w-48 rounded-xl text-sm z-50 ${profileOpen ? "block" : "hidden"}`}
+              onMouseEnter={() => setProfileOpen(true)}
+              onMouseLeave={() => setProfileOpen(false)}
+            >
+              {/* Dashboard Option - Same for all roles */}
+              <div 
+                onClick={() => navAndClose(getDashboardRoute())} 
+                className="px-4 py-3 text-blue-900 hover:bg-blue-50 cursor-pointer transition-colors duration-200 border-b border-gray-100"
+              >
+                Dashboard
+              </div>
+              
+              {/* Logout Option - Same for all roles */}
+              <div
+                onClick={handleLogout}
+                className="px-4 py-3 text-blue-900 hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors duration-200 font-semibold"
+              >
+                Logout
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Menu Button */}
+      <button onClick={() => setOpen(prev => !prev)} aria-label="Menu" className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <img src={assets.menu_icon} alt="menu" className="w-6 h-6" />
+      </button>
+
+      {/* Mobile Menu */}
+      {open && (
+        <div className="absolute top-[70px] left-0 w-full bg-white shadow-xl border-t border-gray-200 py-6 flex flex-col items-start gap-4 px-6 text-base sm:hidden z-50">
+          <NavLink to="/" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Home</NavLink>
+          
+          {/* Mobile About - Updated to use smooth scroll */}
+          <button 
+            onClick={scrollToAbout}
+            className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+          >
+            About
+          </button>
+          
+          <NavLink to="/childcare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Childcare</NavLink>
+          <NavLink to="/elderlycare" onClick={() => setOpen(false)} className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2">Elderly Care</NavLink>
+          
+          {/* Mobile Contact - Updated to use smooth scroll to footer */}
+          <button 
+            onClick={scrollToFooter}
+            className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+          >
+            Contact
+          </button>
+
+          {/* Mobile Login/Logout */}
+          {!user ? (
+            <button
+              onClick={() => { setOpen(false); navigate("/login"); }}
+              className="w-full text-center px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors duration-200 text-white font-semibold rounded-full shadow-md mt-4"
+            >
+              Login
+            </button>
+          ) : (
+            <>
+              {/* Mobile Dashboard Option */}
+              <NavLink 
+                to={getDashboardRoute()} 
+                onClick={() => setOpen(false)} 
+                className="text-blue-900 hover:text-[--color-primary] transition-colors duration-200 py-2"
+              >
+                Dashboard
+              </NavLink>
+              
+              {/* Mobile Logout Option */}
+              <button
+                onClick={handleLogout}
+                className="w-full text-center px-6 py-3 bg-red-600 hover:bg-red-700 transition-colors duration-200 text-white font-semibold rounded-full shadow-md mt-4"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </nav>
+  );
+};
+
+export default Navbar;
