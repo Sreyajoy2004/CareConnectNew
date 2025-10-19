@@ -30,22 +30,29 @@ const CareProviderDashboard = () => {
       try {
         const bookings = await apiService.getProviderBookings();
         
-        // Calculate stats from backend data
-        const totalBookings = bookings.length;
-        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
-        const completedBookings = bookings.filter(b => b.status === 'completed').length;
-        
-        setDashboardStats({
-          totalBookings,
-          pendingBookings,
-          completedBookings,
-          totalEarnings: completedBookings * 50, // Simple calculation
-          averageRating: 4.8 // Default for now
-        });
+        // Check if we got data from backend
+        if (bookings && bookings.length > 0) {
+          // Calculate stats from backend data
+          const totalBookings = bookings.length;
+          const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+          const completedBookings = bookings.filter(b => b.status === 'completed').length;
+          
+          setDashboardStats({
+            totalBookings,
+            pendingBookings,
+            completedBookings,
+            totalEarnings: completedBookings * 50, // Simple calculation
+            averageRating: 4.8 // Default for now
+          });
 
-        setRecentActivity(bookings.slice(0, 5)); // Show recent 5 bookings
+          setRecentActivity(bookings.slice(0, 5)); // Show recent 5 bookings
+        } else {
+          console.log('No bookings found in backend, using demo data');
+          // Fall through to demo data
+          throw new Error('No data from backend');
+        }
       } catch (apiError) {
-        console.log('Backend unavailable, using demo data');
+        console.log('Backend unavailable or no data, using demo data');
         // Fallback to demo data
         setDashboardStats({
           totalBookings: 24,

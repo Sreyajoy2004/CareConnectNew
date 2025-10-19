@@ -129,3 +129,30 @@ export async function flagCaregiver(req, res) {
     res.status(500).json({ error: "Failed to flag caregiver" });
   }
 }
+
+// ================================
+// Get individual caregiver by ID
+// ================================
+export async function getCaregiver(req, res) {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      `SELECT id, name, specialization, hourly_rate, experience_years,
+              service_radius_km, address, phone, mail, category, image,
+              is_verified, description, available_at
+       FROM careproviders
+       WHERE id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Careprovider not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("❌ Get caregiver error:", err.message);
+    res.status(500).json({ error: "Failed to fetch caregiver" });
+  }
+}

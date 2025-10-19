@@ -1,4 +1,4 @@
--- CareConnect required schema (idempotent-safe)
+-- CareConnect simplified schema
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -34,16 +34,6 @@ CREATE TABLE IF NOT EXISTS careproviders (
   CONSTRAINT fk_careproviders_user FOREIGN KEY (created_by) REFERENCES users(user_id)
 );
 
--- Add/ensure columns (safe alterations)
-ALTER TABLE careproviders 
-  ADD COLUMN IF NOT EXISTS is_verified TINYINT(1) NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS verification_doc_url VARCHAR(500) NULL,
-  ADD COLUMN IF NOT EXISTS verified_by INT NULL,
-  ADD COLUMN IF NOT EXISTS verification_expiry DATETIME NULL;
-
--- Optional: index for admin listings of unverified providers
-CREATE INDEX idx_careproviders_is_verified ON careproviders(is_verified);
-
 -- Bookings table
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -64,10 +54,9 @@ CREATE TABLE IF NOT EXISTS reviews (
   booking_id INT NOT NULL,
   resource_id INT NOT NULL,
   seeker_id INT NOT NULL,
-  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  rating INT NOT NULL,
   comment TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_reviews_booking FOREIGN KEY (booking_id) REFERENCES bookings(id),
   CONSTRAINT fk_reviews_seeker FOREIGN KEY (seeker_id) REFERENCES users(user_id)
 );
-

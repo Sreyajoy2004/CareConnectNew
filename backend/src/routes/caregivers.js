@@ -4,6 +4,7 @@ import { requireRole } from "../middleware/roleMiddleware.js";
 import {
   addCaregiver,
   listCaregivers,
+  getCaregiver,
   uploadVerificationDoc,
   verifyCaregiver,
   flagCaregiver
@@ -16,6 +17,9 @@ router.post("/", authMiddleware, requireRole("provider"), addCaregiver);
 
 // Public list caregivers
 router.get("/", listCaregivers);
+
+// Public get individual caregiver
+router.get("/:id", getCaregiver);
 
 // Provider uploads certificate
 router.patch("/:id/upload-doc", authMiddleware, requireRole("provider"), uploadVerificationDoc);

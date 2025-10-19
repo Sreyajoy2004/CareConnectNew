@@ -92,7 +92,7 @@ export const AppContextProvider = ({ children }) => {
       // Try backend first
       const response = await apiService.login(email, password);
       
-      if (response.token) {
+      if (response && response.token) {
         localStorage.setItem('token', response.token);
         
         // Transform backend user to frontend format

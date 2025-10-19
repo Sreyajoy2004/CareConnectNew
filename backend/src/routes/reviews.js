@@ -4,13 +4,17 @@ import { requireRole } from "../middleware/roleMiddleware.js";
 import {
   addReview,
   getReviews,
-  getAverageRating
+  getAverageRating,
+  getMyReviews
 } from "../controllers/reviewController.js";
 
 const router = express.Router();
 
 // Seeker adds review (only after completed booking)
 router.post("/", authMiddleware, requireRole("seeker"), addReview);
+
+// Seeker gets their own reviews
+router.get("/my", authMiddleware, requireRole("seeker"), getMyReviews);
 
 // Public: get all reviews for a caregiver/resource
 router.get("/:resourceId", getReviews);

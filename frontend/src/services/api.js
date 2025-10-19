@@ -1,5 +1,6 @@
 // src/services/api.js
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
 
 class ApiService {
   constructor() {
@@ -8,6 +9,7 @@ class ApiService {
 
   async request(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
+    console.log('API: Making request to:', url);
     const config = {
       headers: {
         'Content-Type': 'application/json',
@@ -23,6 +25,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
+      console.log('API: Response status:', response.status);
       
       // Handle unauthorized (token expired)
       if (response.status === 401) {
@@ -46,25 +49,33 @@ class ApiService {
         return null;
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('API: Response data:', result);
+      return result;
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
     }
   }
 
-  // Auth methods
+  // ================================
+  // AUTH METHODS
+  // ================================
   async login(email, password) {
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: { email, password },
     });
     
-    if (response && response.token) {
-      this.token = response.token;
-      localStorage.setItem('token', response.token);
-    }
-    
+   if (response && response.token) {
+  this.token = response.token;
+  localStorage.setItem('token', response.token);
+
+  if (response.user) {
+    localStorage.setItem('user', JSON.stringify(response.user)); // ✅ save user too
+  }
+}
+
     return response;
   }
 
@@ -75,7 +86,13 @@ class ApiService {
     });
   }
 
-  // Profile methods
+  async getMe() {
+    return this.request('/auth/me');
+  }
+
+  // ================================
+  // PROFILE METHODS
+  // ================================
   async getProfile() {
     return this.request('/profile/me');
   }
@@ -87,7 +104,49 @@ class ApiService {
     });
   }
 
-  // Booking methods
+  // ================================
+  // CAREGIVER METHODS
+  // ================================
+  async getCaregivers() {
+    console.log('API: Getting caregivers from /caregivers');
+    const result = await this.request('/caregivers');
+    console.log('API: Received caregivers data:', result);
+    return result;
+  }
+
+  async getCaregiver(id) {
+    return this.request(`/caregivers/${id}`);
+  }
+
+  async addCaregiver(caregiverData) {
+    return this.request('/caregivers', {
+      method: 'POST',
+      body: caregiverData,
+    });
+  }
+
+  async uploadVerificationDoc(caregiverId, docUrl) {
+    return this.request(`/caregivers/${caregiverId}/upload-doc`, {
+      method: 'PATCH',
+      body: { docUrl },
+    });
+  }
+
+  async verifyCaregiver(caregiverId) {
+    return this.request(`/caregivers/${caregiverId}/verify`, {
+      method: 'PATCH',
+    });
+  }
+
+  async flagCaregiver(caregiverId) {
+    return this.request(`/caregivers/${caregiverId}/flag`, {
+      method: 'PATCH',
+    });
+  }
+
+  // ================================
+  // BOOKING METHODS
+  // ================================
   async createBooking(bookingData) {
     return this.request('/bookings', {
       method: 'POST',
@@ -121,16 +180,9 @@ class ApiService {
     });
   }
 
-  // Caregiver methods - UPDATED FOR AMAL'S BACKEND
-  async getCaregivers() {
-    return this.request('/caregivers');
-  }
-
-  async getCaregiver(id) {
-    return this.request(`/caregivers/${id}`);
-  }
-
-  // Review methods - UPDATED FOR AMAL'S BACKEND
+  // ================================
+  // REVIEW METHODS
+  // ================================
   async createReview(reviewData) {
     return this.request('/reviews', {
       method: 'POST',
@@ -146,17 +198,13 @@ class ApiService {
     return this.request(`/reviews/${resourceId}/average`);
   }
 
-  // Get my reviews (seeker's own reviews) - This endpoint doesn't exist in Amal's backend yet
   async getMyReviews() {
-    try {
-      return await this.request('/reviews/my');
-    } catch (error) {
-      console.log('Get my reviews endpoint not available, using fallback');
-      throw error;
-    }
+    return this.request('/reviews/my');
   }
 
-  // Admin methods
+  // ================================
+  // ADMIN METHODS
+  // ================================
   async getAdminUsers() {
     return this.request('/admin/users');
   }
@@ -172,25 +220,6 @@ class ApiService {
   async deleteUser(userId) {
     return this.request(`/admin/users/${userId}`, {
       method: 'DELETE',
-    });
-  }
-
-  async verifyCaregiver(caregiverId) {
-    return this.request(`/caregivers/${caregiverId}/verify`, {
-      method: 'PATCH',
-    });
-  }
-
-  async flagCaregiver(caregiverId) {
-    return this.request(`/caregivers/${caregiverId}/flag`, {
-      method: 'PATCH',
-    });
-  }
-
-  async uploadVerificationDoc(caregiverId, docUrl) {
-    return this.request(`/caregivers/${caregiverId}/upload-doc`, {
-      method: 'PATCH',
-      body: { docUrl },
     });
   }
 }

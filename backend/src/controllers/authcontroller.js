@@ -89,9 +89,8 @@ export async function register(req, res) {
     conn.release();
   }
 }
-
 // ==============================
-// Login
+// Login (updated)
 // ==============================
 export async function login(req, res) {
   try {
@@ -111,21 +110,23 @@ export async function login(req, res) {
     const token = jwt.sign(
       { userId: user.user_id, role: user.role },
       process.env.JWT_SECRET || "devsecret",
-      { expiresIn: "1h" }
+      { expiresIn: "1d" } // ⏳ 1 day
     );
 
-    res.json({
+    // ✅ Return full user info for frontend to store
+    return res.json({
+      message: "Login successful",
       token,
-      role: user.role,
       user: {
-        id: user.user_id,
+        user_id: user.user_id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     console.error("❌ Login error:", err);
-    res.status(500).json({ error: "Login failed", details: err.message });
+    return res.status(500).json({ error: "Login failed", details: err.message });
   }
 }
 

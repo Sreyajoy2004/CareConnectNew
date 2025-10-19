@@ -69,3 +69,25 @@ export async function getAverageRating(req, res) {
     res.status(500).json({ error: "Failed to fetch average rating" });
   }
 }
+
+// ================================
+// Get user's own reviews (seeker only)
+// ================================
+export async function getMyReviews(req, res) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT r.id, r.rating, r.comment, r.created_at, r.resource_id,
+              cp.name AS caregiver_name, cp.specialization
+       FROM reviews r
+       JOIN careproviders cp ON r.resource_id = cp.id
+       WHERE r.seeker_id = ?
+       ORDER BY r.created_at DESC`,
+      [req.user.userId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Get my reviews error:", err.message);
+    res.status(500).json({ error: "Failed to fetch user reviews" });
+  }
+}

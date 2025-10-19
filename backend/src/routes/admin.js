@@ -16,7 +16,7 @@ router.use(authMiddleware, requireRole("admin"));
 // Admin actions
 router.get("/users", listUsers);
 router.get("/bookings", listBookings);
-router.get("/careproviders/unverified", listUnverifiedCareproviders);
+router.get("/caregivers/unverified", listUnverifiedCareproviders);
 router.delete("/users/:id", deleteUser);
 
 export default router;

@@ -38,33 +38,42 @@ const CareSeekerDashboard = () => {
       // Fetch caregivers from backend
       try {
         const caregiversData = await apiService.getCaregivers();
-        // Transform backend data to frontend format with better specialization handling
-        const transformedCaregivers = caregiversData.map(caregiver => ({
-          id: caregiver.id,
-          name: caregiver.name,
-          careType: caregiver.category || 'General Care',
-          specialization: caregiver.specialization || 'Care Specialist',
-          rate: caregiver.hourly_rate || 25,
-          rating: 4.8,
-          reviews: 24,
-          experience: caregiver.experience_years ? `${caregiver.experience_years} years experience` : '5 years experience',
-          location: caregiver.address ? caregiver.address.split(',')[0] : 'Boston, MA', // Extract city from address
-          availability: caregiver.available_at || 'Full-time',
-          verified: caregiver.is_verified || true,
-          profileImage: null,
-          qualifications: 'CPR Certified, Nursing Degree',
-          // Map backend specialization to our frontend specialties array
-          specialties: mapSpecializationToArray(caregiver.specialization),
-          address: caregiver.address || '123 Care Street, Boston, MA',
-          hourlyRate: `$${caregiver.hourly_rate || 25}/hr`,
-          bio: caregiver.description || 'Experienced caregiver providing quality care services.',
-          memberSince: 'Jan 2023',
-          completedJobs: 47,
-          responseRate: 95
-        }));
-        setCaregivers(transformedCaregivers);
+        console.log('Backend caregivers data:', caregiversData);
+        
+        // Check if we got data from backend
+        if (caregiversData && caregiversData.length > 0) {
+          // Transform backend data to frontend format with better specialization handling
+          const transformedCaregivers = caregiversData.map(caregiver => ({
+            id: caregiver.id,
+            name: caregiver.name,
+            careType: caregiver.category || 'General Care',
+            specialization: caregiver.specialization || 'Care Specialist',
+            rate: caregiver.hourly_rate || 25,
+            rating: 4.8,
+            reviews: 24,
+            experience: caregiver.experience_years ? `${caregiver.experience_years} years experience` : '5 years experience',
+            location: caregiver.address ? caregiver.address.split(',')[0] : 'Boston, MA', // Extract city from address
+            availability: caregiver.available_at || 'Full-time',
+            verified: caregiver.is_verified || true,
+            profileImage: null,
+            qualifications: 'CPR Certified, Nursing Degree',
+            // Map backend specialization to our frontend specialties array
+            specialties: mapSpecializationToArray(caregiver.specialization),
+            address: caregiver.address || '123 Care Street, Boston, MA',
+            hourlyRate: `$${caregiver.hourly_rate || 25}/hr`,
+            bio: caregiver.description || 'Experienced caregiver providing quality care services.',
+            memberSince: 'Jan 2023',
+            completedJobs: 47,
+            responseRate: 95
+          }));
+          setCaregivers(transformedCaregivers);
+        } else {
+          console.log('No caregivers found in backend, using demo data');
+          // Fall through to demo data
+          throw new Error('No data from backend');
+        }
       } catch (apiError) {
-        console.log('Backend unavailable, using demo data');
+        console.log('Backend unavailable or no data, using demo data');
         // Fallback to demo data with proper specialties
         setCaregivers([
           {
