@@ -177,10 +177,6 @@ const CareSeekerBookings = () => {
     }
   };
 
-  const handleContactCaregiver = (caregiverId) => {
-    navigate(`/careprovider/${caregiverId}`);
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -389,15 +385,7 @@ const CareSeekerBookings = () => {
                           View Caregiver
                         </button>
                         
-                        {/* Contact Now button - Only for upcoming bookings */}
-                        {activeTab === 'upcoming' && (
-                          <button 
-                            onClick={() => handleContactCaregiver(booking.caregiverId)}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full lg:w-auto"
-                          >
-                            Contact Now
-                          </button>
-                        )}
+                        {/* REMOVED: Contact Now button - redundant with View Caregiver */}
                         
                         {/* Cancel button - Only for pending and upcoming bookings */}
                         {(activeTab === 'pending' || activeTab === 'upcoming') && booking.canCancel !== false && (

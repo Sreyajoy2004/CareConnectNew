@@ -20,44 +20,6 @@ const SearchCaregivers = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
 
-  // Mock data - will be replaced by API calls
-  const mockCaregivers = [
-    {
-      id: '1',
-      name: 'Maria Garcia',
-      specialty: 'Elderly Care',
-      rating: 4.8,
-      reviewCount: 24,
-      hourlyRate: 25,
-      experience: '5 years',
-      qualifications: 'CPR Certified, Nursing Degree',
-      availability: 'Full-time',
-      bio: 'Experienced caregiver specializing in elderly care with 5+ years of experience.',
-      specialties: ['Dementia Care', 'Mobility Assistance', 'Medication Management'],
-      responseRate: 95,
-      completedJobs: 47,
-      isFavorite: false,
-      isVerified: true
-    },
-    {
-      id: '2',
-      name: 'John Smith',
-      specialty: 'Child Care',
-      rating: 4.9,
-      reviewCount: 18,
-      hourlyRate: 30,
-      experience: '3 years',
-      qualifications: 'Early Childhood Education',
-      availability: 'Part-time',
-      bio: 'Passionate about child development and creating safe, engaging environments.',
-      specialties: ['Newborn Care', 'Homework Assistance', 'Child Development'],
-      responseRate: 98,
-      completedJobs: 32,
-      isFavorite: true,
-      isVerified: true
-    }
-  ];
-
   useEffect(() => {
     fetchCaregivers();
   }, []);
@@ -66,17 +28,17 @@ const SearchCaregivers = () => {
     try {
       setLoading(true);
       
-      // Try API call first
+      // Try API call first - Amal's backend integration
       try {
         const response = await apiService.getCaregivers();
         
-        // Transform backend data to frontend format - UPDATED FOR AMAL'S BACKEND STRUCTURE
+        // Transform backend data to frontend format
         const transformedCaregivers = response.map(caregiver => ({
           id: caregiver.id.toString(),
           name: caregiver.name,
           specialty: caregiver.specialization || caregiver.category || 'General Care',
-          rating: 4.8, // Default or calculate from reviews
-          reviewCount: 24, // Default or get from reviews count
+          rating: 4.8, // Default - would come from reviews in real app
+          reviewCount: 24, // Default
           hourlyRate: caregiver.hourly_rate || 25,
           experience: caregiver.experience_years ? `${caregiver.experience_years} years` : '5 years',
           qualifications: 'CPR Certified, Nursing Degree', // Default
@@ -92,8 +54,43 @@ const SearchCaregivers = () => {
         setCaregivers(transformedCaregivers);
       } catch (apiError) {
         console.log('Backend unavailable, using demo mode');
-        // Fallback to mock data
-        setCaregivers(mockCaregivers);
+        // Fallback to demo data that matches actual caregiver accounts
+        setCaregivers([
+          {
+            id: '1',
+            name: 'Maria Caregiver',
+            specialty: 'Elderly Care',
+            rating: 4.8,
+            reviewCount: 47,
+            hourlyRate: 25,
+            experience: '5 years',
+            qualifications: 'CPR Certified, Nursing Degree',
+            availability: 'Full-time',
+            bio: 'Experienced caregiver specializing in elderly care with 5+ years of experience.',
+            specialties: ['Dementia Care', 'Mobility Assistance', 'Medication Management'],
+            responseRate: 95,
+            completedJobs: 47,
+            isFavorite: false,
+            isVerified: true
+          },
+          {
+            id: '2',
+            name: 'Maria Garcia',
+            specialty: 'Child Care',
+            rating: 4.9,
+            reviewCount: 63,
+            hourlyRate: 28,
+            experience: '8 years',
+            qualifications: 'CPR Certified, Elderly Care Specialist',
+            availability: 'Part-time',
+            bio: 'Dedicated caregiver specializing in elderly care with 8 years of experience.',
+            specialties: ['Elderly Care', 'Special Needs', 'Dementia Care'],
+            responseRate: 98,
+            completedJobs: 63,
+            isFavorite: true,
+            isVerified: true
+          }
+        ]);
       }
     } catch (err) {
       console.error('Error fetching caregivers:', err);
@@ -108,7 +105,7 @@ const SearchCaregivers = () => {
     
     try {
       // For now, we'll filter the existing caregivers array
-      // In a real app, this would be an API call with search parameters
+      // In a real app, this would be an API call with search parameters to Amal's backend
       const filtered = caregivers.filter(caregiver => {
         const matchesSearch = caregiver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             caregiver.specialty.toLowerCase().includes(searchTerm.toLowerCase());
@@ -130,7 +127,7 @@ const SearchCaregivers = () => {
 
   const toggleFavorite = async (caregiverId) => {
     try {
-      // This would be an API call in a real app
+      // This would be an API call to Amal's backend in a real app
       // For now, we'll just update the local state
       setCaregivers(prev => prev.map(cg => 
         cg.id === caregiverId ? { ...cg, isFavorite: !cg.isFavorite } : cg

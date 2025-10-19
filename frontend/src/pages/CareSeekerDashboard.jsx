@@ -1,18 +1,31 @@
-// src/pages/CareSeekerDashboard.jsx
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import CareSeekerSidebar from "../components/careseeker/CareSeekerSidebar";
-import { useAppContext } from "../context/AppContext";
-import CaregiverCard from "../components/CaregiverCard";
-import { assets } from "../assets/assets";
-import apiService from "../services/api"; // FIXED IMPORT PATH
+// src/pages/careseeker/CareSeekerDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import CareSeekerSidebar from '../components/careseeker/CareSeekerSidebar';
+import { useAppContext } from '../context/AppContext';
+import CaregiverCard from '../components/CaregiverCard';
+import apiService from '../services/api';
 
 const CareSeekerDashboard = () => {
   const { user } = useAppContext();
   const navigate = useNavigate();
-  const [recommendedCaregivers, setRecommendedCaregivers] = useState([]);
-  const [recentBookings, setRecentBookings] = useState([]);
+
+  const [filters, setFilters] = useState({
+    careType: '',
+    specialization: '',
+    location: '',
+    maxRate: ''
+  });
+
+  const [caregivers, setCaregivers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Define specialization options for each care type
+  const specializationOptions = {
+    'Childcare': ['Infant Care', 'Toddler Care', 'After School Care', 'Special Needs', 'Homework Assistance'],
+    'Elderly Care': ['Dementia Care', 'Mobility Assistance', 'Medication Management', 'Companion Care', 'Post-Surgery Care'],
+    '': []
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -22,69 +35,103 @@ const CareSeekerDashboard = () => {
     try {
       setLoading(true);
       
-      // Try to get caregivers from backend
+      // Fetch caregivers from backend
       try {
-        const caregivers = await apiService.getCaregivers();
-        setRecommendedCaregivers(caregivers.slice(0, 3)); // Show first 3
+        const caregiversData = await apiService.getCaregivers();
+        // Transform backend data to frontend format with better specialization handling
+        const transformedCaregivers = caregiversData.map(caregiver => ({
+          id: caregiver.id,
+          name: caregiver.name,
+          careType: caregiver.category || 'General Care',
+          specialization: caregiver.specialization || 'Care Specialist',
+          rate: caregiver.hourly_rate || 25,
+          rating: 4.8,
+          reviews: 24,
+          experience: caregiver.experience_years ? `${caregiver.experience_years} years experience` : '5 years experience',
+          location: caregiver.address ? caregiver.address.split(',')[0] : 'Boston, MA', // Extract city from address
+          availability: caregiver.available_at || 'Full-time',
+          verified: caregiver.is_verified || true,
+          profileImage: null,
+          qualifications: 'CPR Certified, Nursing Degree',
+          // Map backend specialization to our frontend specialties array
+          specialties: mapSpecializationToArray(caregiver.specialization),
+          address: caregiver.address || '123 Care Street, Boston, MA',
+          hourlyRate: `$${caregiver.hourly_rate || 25}/hr`,
+          bio: caregiver.description || 'Experienced caregiver providing quality care services.',
+          memberSince: 'Jan 2023',
+          completedJobs: 47,
+          responseRate: 95
+        }));
+        setCaregivers(transformedCaregivers);
       } catch (apiError) {
         console.log('Backend unavailable, using demo data');
-        // Fallback to demo data
-        setRecommendedCaregivers([
+        // Fallback to demo data with proper specialties
+        setCaregivers([
           {
             id: 1,
-            name: "Maria Garcia",
-            specialty: "Elderly Care & Child Care",
+            name: "Maria Caregiver",
+            careType: "Childcare",
+            specialization: "Infant & Toddler Care",
+            rate: 25,
             rating: 4.8,
             reviews: 47,
+            experience: "5 years experience",
+            location: "Boston, MA",
+            availability: "Full-time",
+            verified: true,
+            profileImage: null,
+            qualifications: "CPR Certified, Nursing Degree",
+            specialties: ["Infant Care", "Toddler Care", "Homework Assistance"],
+            address: "123 Care Street, Boston, MA 02115",
             hourlyRate: "$25/hr",
-            experience: "5 years",
-            image: assets.caregiver1
+            bio: "Experienced caregiver with 5+ years in child and elderly care.",
+            memberSince: "Jan 2023",
+            completedJobs: 47,
+            responseRate: 95
           },
           {
             id: 2,
-            name: "John Smith",
-            specialty: "Special Needs Care",
+            name: "Maria Garcia",
+            careType: "Elderly Care", 
+            specialization: "Dementia & Companion Care",
+            rate: 28,
             rating: 4.9,
-            reviews: 32,
-            hourlyRate: "$30/hr",
-            experience: "7 years",
-            image: assets.caregiver2
+            reviews: 63,
+            experience: "8 years experience",
+            location: "Boston, MA",
+            availability: "Part-time",
+            verified: true,
+            profileImage: null,
+            qualifications: "CPR Certified, Elderly Care Specialist",
+            specialties: ["Dementia Care", "Mobility Assistance", "Companion Care"],
+            address: "456 Caregiver Ave, Boston, MA 02115",
+            hourlyRate: "$28/hr",
+            bio: "Dedicated caregiver specializing in elderly care with 8 years of experience.",
+            memberSince: "Mar 2022",
+            completedJobs: 63,
+            responseRate: 98
           },
           {
             id: 3,
-            name: "Sarah Johnson",
-            specialty: "Post-Surgery Care",
+            name: "David Chen",
+            careType: "Childcare",
+            specialization: "Special Needs Expert",
+            rate: 30,
             rating: 4.7,
-            reviews: 28,
-            hourlyRate: "$28/hr",
-            experience: "4 years",
-            image: assets.caregiver3
-          }
-        ]);
-      }
-
-      // Try to get recent bookings
-      try {
-        const bookings = await apiService.getMyBookings();
-        setRecentBookings(bookings.slice(0, 3)); // Show first 3
-      } catch (apiError) {
-        // Fallback to demo bookings
-        setRecentBookings([
-          {
-            id: 1,
-            caregiverName: "Maria Garcia",
-            serviceType: "Elderly Care",
-            date: "2024-01-15",
-            status: "confirmed",
-            amount: 100
-          },
-          {
-            id: 2,
-            caregiverName: "John Smith",
-            serviceType: "Special Needs",
-            date: "2024-01-10",
-            status: "completed",
-            amount: 120
+            reviews: 38,
+            experience: "6 years experience", 
+            location: "Boston, MA",
+            availability: "Full-time",
+            verified: false,
+            profileImage: null,
+            qualifications: "Special Needs Certification",
+            specialties: ["Special Needs", "Behavioral Therapy", "Homework Assistance"],
+            address: "789 Childcare Lane, Boston, MA 02115",
+            hourlyRate: "$30/hr",
+            bio: "Specialized in special needs care with extensive experience.",
+            memberSince: "Jun 2023",
+            completedJobs: 38,
+            responseRate: 92
           }
         ]);
       }
@@ -95,16 +142,59 @@ const CareSeekerDashboard = () => {
     }
   };
 
+  // Helper function to map backend specialization to frontend specialties array
+  const mapSpecializationToArray = (specialization) => {
+    if (!specialization) return ['General Care'];
+    
+    const spec = specialization.toLowerCase();
+    if (spec.includes('child') || spec.includes('infant') || spec.includes('toddler')) {
+      return ['Infant Care', 'Toddler Care', 'Child Development'];
+    } else if (spec.includes('elderly') || spec.includes('senior') || spec.includes('dementia')) {
+      return ['Dementia Care', 'Mobility Assistance', 'Companion Care'];
+    } else if (spec.includes('special needs') || spec.includes('disability')) {
+      return ['Special Needs', 'Behavioral Therapy', 'Personal Care'];
+    }
+    
+    return ['General Care'];
+  };
+
+  // FIXED FILTER LOGIC
+  const filteredCaregivers = caregivers.filter(caregiver => {
+    const matchesCareType = !filters.careType || 
+                           caregiver.careType.toLowerCase().includes(filters.careType.toLowerCase());
+    
+    const matchesSpecialization = !filters.specialization || 
+                                caregiver.specialties.some(spec => 
+                                  spec.toLowerCase().includes(filters.specialization.toLowerCase())
+                                );
+    
+    const matchesLocation = !filters.location || 
+                           caregiver.location.toLowerCase().includes(filters.location.toLowerCase());
+    
+    const matchesRate = !filters.maxRate || caregiver.rate <= parseInt(filters.maxRate);
+    
+    return matchesCareType && matchesSpecialization && matchesLocation && matchesRate;
+  });
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value,
+      ...(key === 'careType' && { specialization: '' }) // Reset specialization when care type changes
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      careType: '',
+      specialization: '',
+      location: '',
+      maxRate: ''
+    });
+  };
+
   const handleBookCaregiver = (caregiverId) => {
     navigate(`/booking/${caregiverId}`);
-  };
-
-  const handleViewAllCaregivers = () => {
-    navigate('/search');
-  };
-
-  const handleViewBookingDetails = (bookingId) => {
-    navigate('/careseeker/bookings');
   };
 
   if (loading) {
@@ -129,18 +219,20 @@ const CareSeekerDashboard = () => {
         <CareSeekerSidebar />
         
         <div className="flex-1 p-6 lg:p-8">
-          {/* Header */}
+          {/* Welcome Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {user?.name || 'Care Seeker'}!
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Here's what's happening with your care services today.
-            </p>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome back, {user?.name || 'Care Seeker'}! 👋
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Find the perfect caregiver for your needs
+              </p>
+            </div>
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
@@ -168,82 +260,120 @@ const CareSeekerDashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                </div>
+          {/* Search and Filter Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Find Your Perfect Caregiver
+              </h2>
+              
+              {/* Filter Section */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Care Type */}
                 <div>
-                  <p className="text-sm text-gray-600">Caregivers Rated</p>
-                  <p className="text-2xl font-bold text-gray-900">8</p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Care Type</label>
+                  <select 
+                    value={filters.careType}
+                    onChange={(e) => handleFilterChange('careType', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Childcare">Childcare</option>
+                    <option value="Elderly Care">Elderly Care</option>
+                  </select>
                 </div>
+
+                {/* Specialization */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Specialization</label>
+                  <select 
+                    value={filters.specialization}
+                    onChange={(e) => handleFilterChange('specialization', e.target.value)}
+                    disabled={!filters.careType}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 disabled:bg-gray-50"
+                  >
+                    <option value="">All Specialties</option>
+                    {specializationOptions[filters.careType]?.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                  <input 
+                    type="text"
+                    placeholder="City or area..."
+                    value={filters.location}
+                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+
+                {/* Max Rate */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Max Rate</label>
+                  <input 
+                    type="number"
+                    placeholder="$ per hour"
+                    value={filters.maxRate}
+                    onChange={(e) => handleFilterChange('maxRate', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-700 placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4 justify-center">
+                <button 
+                  onClick={clearFilters}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Recommended Caregivers */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-8">
+          {/* Caregiver Cards Grid */}
+          <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Recommended Caregivers</h2>
-              <button 
-                onClick={handleViewAllCaregivers}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                View All →
-              </button>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {filteredCaregivers.length > 0 
+                  ? `Found ${filteredCaregivers.length} caregivers` 
+                  : 'Browse our caregivers'
+                }
+              </h3>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {recommendedCaregivers.map((caregiver) => (
-                <CaregiverCard
-                  key={caregiver.id}
-                  caregiver={caregiver}
-                  onBook={() => handleBookCaregiver(caregiver.id)}
-                />
-              ))}
-            </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-            
-            <div className="space-y-4">
-              {recentBookings.map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{booking.caregiverName}</h3>
-                      <p className="text-sm text-gray-600">{booking.serviceType} • {booking.date}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                      booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {booking.status}
-                    </span>
-                    <button 
-                      onClick={() => handleViewBookingDetails(booking.id)}
-                      className="text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {filteredCaregivers.length > 0 ? (
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredCaregivers.map(caregiver => (
+                  <CaregiverCard 
+                    key={caregiver.id} 
+                    caregiver={caregiver}
+                    onBook={() => handleBookCaregiver(caregiver.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  No caregivers match your current filters
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Adjust your filters to see more results
+                </p>
+                <button 
+                  onClick={clearFilters}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
