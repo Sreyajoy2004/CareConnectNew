@@ -18,7 +18,10 @@ const Register = () => {
     experience: '',
     hourlyRate: '',
     qualifications: '',
-    availability: 'Flexible'
+    availability: 'Flexible',
+    category: '',
+    image: '',
+    verificationDocUrl: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -64,6 +67,7 @@ const Register = () => {
     if (showProviderFields) {
       if (!formData.mainSpecialty.trim()) newErrors.mainSpecialty = 'Main specialty is required';
       if (!formData.experience.trim()) newErrors.experience = 'Experience is required';
+      if (!formData.category.trim()) newErrors.category = 'Category is required';
     }
     
     setErrors(newErrors);
@@ -162,6 +166,22 @@ const Register = () => {
               </button>
             </div>
           </div>
+
+              <div className="mt-4">
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                  Category *
+                </label>
+                <input
+                  id="category"
+                  name="category"
+                  type="text"
+                  value={formData.category}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  placeholder="e.g., Home Care, Therapy"
+                />
+                {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+              </div>
 
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-4">
@@ -388,6 +408,37 @@ const Register = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all resize-none"
                     placeholder="Tell us about your experience and approach to care..."
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+                      Profile Image URL (optional)
+                    </label>
+                    <input
+                      id="image"
+                      name="image"
+                      type="url"
+                      value={formData.image}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="verificationDocUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                      Verification Document URL (optional)
+                    </label>
+                    <input
+                      id="verificationDocUrl"
+                      name="verificationDocUrl"
+                      type="url"
+                      value={formData.verificationDocUrl}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
               </div>
             </>

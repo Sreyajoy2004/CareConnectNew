@@ -1,4 +1,3 @@
-// src/context/AppContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
 import apiService from '../services/api';
 
@@ -7,7 +6,6 @@ export const AppContext = createContext();
 
 // 2. Provider component
 export const AppContextProvider = ({ children }) => {
-  // Global states
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [bookings, setBookings] = useState([]);
@@ -15,59 +13,7 @@ export const AppContextProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [adminNotifications, setAdminNotifications] = useState([]);
 
-  // Mock user database for testing (fallback)
-  const mockUsers = {
-    'family@careconnect.com': { 
-      name: 'Sarah Family',
-      role: 'careseeker',
-      password: 'demo123'
-    },
-    'caregiver@careconnect.com': { 
-      name: 'Maria Caregiver', 
-      role: 'careprovider',
-      password: 'demo123',
-      profileData: {
-        phone: "+1 (555) 123-4567",
-        address: "123 Care Street, Boston, MA 02115",
-        bio: "Experienced caregiver with 5+ years in child and elderly care.",
-        specialties: ["Child Care", "Elderly Care"],
-        experience: "5 years",
-        availability: "Full-time",
-        qualifications: "CPR Certified, Nursing Degree",
-        mainSpecialty: "Childcare",
-        certifications: ["CPR Certificate.pdf", "First Aid Certificate.pdf"],
-        memberSince: "Jan 2023",
-        completedJobs: 47,
-        responseRate: 95
-      }
-    },
-    'mariagarcia@careconnect.com': { 
-      name: 'Maria Garcia', 
-      role: 'careprovider',
-      password: 'demo123',
-      profileData: {
-        phone: "+1 (555) 987-6543",
-        address: "456 Caregiver Ave, Boston, MA 02115",
-        bio: "Dedicated caregiver specializing in elderly care with 8 years of experience.",
-        specialties: ["Elderly Care", "Special Needs"],
-        experience: "8 years",
-        availability: "Part-time",
-        qualifications: "CPR Certified, Elderly Care Specialist",
-        mainSpecialty: "Elderly Care",
-        certifications: ["CPR Certificate.pdf", "Elderly Care Certification.pdf"],
-        memberSince: "Mar 2022",
-        completedJobs: 63,
-        responseRate: 98
-      }
-    },
-    'admin@careconnect.com': { 
-      name: 'Admin User',
-      role: 'admin', 
-      password: 'admin123'
-    }
-  };
-
-  // Function to notify admin about profile changes
+  // 🔔 Optional: notify admin about profile updates
   const notifyAdmin = (userId, userName, updates) => {
     const notification = {
       id: Date.now(),
@@ -78,90 +24,113 @@ export const AppContextProvider = ({ children }) => {
       timestamp: new Date().toISOString(),
       status: 'pending'
     };
-    
     setAdminNotifications(prev => [notification, ...prev]);
-    
-    // In real app, this would be an API call to backend
     console.log('Admin notified about profile update:', notification);
   };
 
-  // Login function with backend integration
+  // =============================
+  // ✅ LOGIN
+  // =============================
   const login = async (email, password) => {
     setLoading(true);
     try {
-      // Try backend first
       const response = await apiService.login(email, password);
-      
       if (response && response.token) {
         localStorage.setItem('token', response.token);
-        
-        // Transform backend user to frontend format
+
+        const profile = await apiService.getMe();
+        const formattedMemberSince = profile.member_since
+          ? new Date(profile.member_since).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+          : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+
+        const frontendRole = profile.role === 'provider'
+          ? 'careprovider'
+          : profile.role === 'seeker'
+          ? 'careseeker'
+          : profile.role;
+
+        const specialtiesArray = profile.specialization
+          ? Array.isArray(profile.specialization)
+            ? profile.specialization
+            : [profile.specialization]
+          : [];
+
+        const certificationsArray = Array.isArray(profile.certificates)
+          ? profile.certificates
+          : (profile.certificates ? String(profile.certificates).split(',').map(s => s.trim()) : []);
+
+        let profileDataObj = {};
+
+        if (profile.role === 'provider') {
+          // Provider profile mapping
+          profileDataObj = {
+            memberSince: formattedMemberSince,
+            bio: profile.bio || '',
+            phone: profile.phone || '',
+            address: profile.address || '',
+            specialties: specialtiesArray.length ? specialtiesArray : [profile.category].filter(Boolean),
+            experience: profile.experience_years != null ? `${profile.experience_years} years` : '',
+            hourlyRate: profile.hourly_rate != null ? `$${Number(profile.hourly_rate).toFixed(2)}/hr` : '',
+            qualifications: certificationsArray.length ? certificationsArray.join(', ') : '',
+            mainSpecialty: profile.specialization || '',
+            certifications: certificationsArray,
+            profileImage: profile.image || null,
+            specialization: profile.specialization || '',
+            hourly_rate: profile.hourly_rate ?? null,
+            experience_years: profile.experience_years ?? null,
+            category: profile.category || '',
+            image: profile.image || null,
+            certificates: certificationsArray,
+            isVerified: profile.is_verified === 1 || profile.is_verified === true
+          };
+        } else {
+          // Seeker profile mapping
+          profileDataObj = {
+            memberSince: formattedMemberSince,
+            phone: profile.phone || '',
+            address: profile.address || '',
+            emergencyContact: profile.emergency_contact || '',
+            bio: profile.bio || '',
+            profileImage: profile.image || null,
+            completedBookings: profile.completed_bookings || 0,
+            activeBookings: profile.active_bookings || 0,
+            preferences: profile.preferences || ''
+          };
+        }
+
         const userData = {
-          id: response.user.id,
-          name: response.user.name,
-          email: response.user.email,
-          role: response.user.role, // This will be 'provider' or 'seeker' from backend
-          profilePicture: null,
-          phone: response.user.phone || '',
-          address: response.user.address || '',
-          // Map backend role to frontend role names for routing
-          frontendRole: response.user.role === 'provider' ? 'careprovider' : 
-                       response.user.role === 'seeker' ? 'careseeker' : response.user.role,
-          profileData: {
-            memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-            completedJobs: 0,
-            responseRate: 100,
-            ...response.user
-          }
+          id: profile.user_id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+          frontendRole,
+          phone: profile.phone || '',
+          address: profile.address || '',
+          profilePicture: profile.image || null,
+          profileData: profileDataObj
         };
-        
+
         setUser(userData);
-        setRole(userData.frontendRole); // Use frontend role for routing
+        setRole(frontendRole);
         localStorage.setItem('user', JSON.stringify(userData));
         setLoading(false);
         return true;
       }
-      
       setLoading(false);
       return false;
-      
     } catch (error) {
-      // Fallback to demo mode
-      console.log('Backend unavailable, using demo mode');
-      return demoLogin(email, password);
+      console.error('❌ Login error:', error);
+      setLoading(false);
+      return false;
     }
   };
 
-  // Update demo login to handle role mapping
-  const demoLogin = (email, password) => {
-    const userData = mockUsers[email];
-    if (userData && userData.password === password) {
-      const user = {
-        id: email.split('@')[0],
-        email: email,
-        name: userData.name,
-        role: userData.role, // Keep original for display
-        frontendRole: userData.role, // Same for demo
-        profileData: userData.profileData || {
-          memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-          completedJobs: 0,
-          responseRate: 100
-        }
-      };
-      
-      setUser(user);
-      setRole(userData.role);
-      localStorage.setItem('user', JSON.stringify(user));
-      return true;
-    }
-    return false;
-  };
-
-  // Register function - Enhanced for backend integration
+  // =============================
+  // ✅ REGISTER
+  // =============================
   const register = async (formData) => {
     setLoading(true);
     try {
-      // Prepare data for backend
       const backendData = {
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
@@ -173,176 +142,72 @@ export const AppContextProvider = ({ children }) => {
         specialization: formData.mainSpecialty,
         hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
         experience_years: formData.experience ? parseInt(formData.experience) : null,
-        category: formData.mainSpecialty,
-        // Add other fields as needed
+        category: formData.category || formData.mainSpecialty || null,
+        image: formData.image || null,
+        verification_doc_url: formData.verificationDocUrl || null,
       };
 
-      // Try backend registration first
-      try {
-        const response = await apiService.register(backendData);
-        
-        if (response.userId) {
-          // Auto-login after successful registration
-          const loginSuccess = await login(formData.email, formData.password);
-          if (loginSuccess) {
-            // Notify admin about new caregiver registration
-            if (formData.role === 'careprovider') {
-              notifyAdmin(response.userId, backendData.name, { type: 'new_registration' });
-            }
-            
-            setLoading(false);
-            return true;
+      const response = await apiService.register(backendData);
+
+      if (response.userId || response.user_id) {
+        const loginSuccess = await login(formData.email, formData.password);
+        if (loginSuccess) {
+          if (formData.role === 'careprovider') {
+            notifyAdmin(response.userId, backendData.name, { type: 'new_registration' });
           }
+          setLoading(false);
+          return true;
         }
-      } catch (apiError) {
-        console.log('Backend registration failed, using demo mode');
       }
 
-      // Fallback to demo registration
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const user = {
-        id: formData.email.split('@')[0],
-        email: formData.email,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: formData.role,
-        profileData: {
-          phone: formData.phone,
-          address: formData.address,
-          experience: formData.experience ? `${formData.experience} years` : '0 years',
-          qualifications: formData.qualifications || '',
-          specialties: formData.specialties || [],
-          availability: formData.availability || 'Flexible',
-          bio: formData.bio || '',
-          mainSpecialty: formData.mainSpecialty || '',
-          certifications: formData.certifications ? formData.certifications.map(f => f.name) : [],
-          memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-          completedJobs: 0,
-          responseRate: 100
-        }
-      };
-      
-      setUser(user);
-      setRole(formData.role);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Notify admin about new caregiver registration
-      if (formData.role === 'careprovider') {
-        notifyAdmin(user.id, user.name, { type: 'new_registration' });
-      }
-      
       setLoading(false);
-      return true;
+      return false;
     } catch (error) {
+      console.error('❌ Registration error:', error);
       setLoading(false);
       return false;
     }
   };
 
-  // Update user profile function
+  // =============================
+  // ✅ UPDATE PROFILE
+  // =============================
   const updateUserProfile = async (updates) => {
     setLoading(true);
     try {
-      // Try backend first
-      try {
-        await apiService.updateProfile(updates);
-      } catch (apiError) {
-        console.log('Backend profile update failed, using demo mode');
-      }
+      await apiService.updateProfile(updates);
 
-      // Fallback to localStorage update
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const updatedUser = {
+      const updatedProfile = await apiService.getMe();
+
+      // Merge updated profile
+      const newUser = {
         ...user,
+        ...updatedProfile,
         profileData: {
           ...user.profileData,
           ...updates
         }
       };
-      
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      // Notify admin about profile changes
-      if (user.role === 'careprovider') {
+
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+
+      if (user.role === 'provider') {
         notifyAdmin(user.id, user.name, updates);
       }
-      
+
       setLoading(false);
       return true;
     } catch (error) {
+      console.error('❌ Update profile error:', error);
       setLoading(false);
       return false;
     }
   };
 
-  // Update profile function for CareSeeker
-  const updateProfile = async (profileData) => {
-    setLoading(true);
-    try {
-      // Try backend first
-      try {
-        await apiService.updateProfile(profileData);
-      } catch (apiError) {
-        console.log('Backend profile update failed, using demo mode');
-      }
-
-      // Fallback to localStorage update
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const updatedUser = {
-        ...user,
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        email: profileData.email,
-        phone: profileData.phone,
-        profileData: {
-          ...user.profileData,
-          address: profileData.address,
-          emergencyContact: profileData.emergencyContact,
-          profileImage: profileData.profileImage
-        }
-      };
-      
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      setLoading(false);
-      return true;
-    } catch (error) {
-      setLoading(false);
-      return false;
-    }
-  };
-
-  // Admin function to verify caregiver
-  const verifyCaregiver = (userId) => {
-    setAdminNotifications(prev => 
-      prev.map(notification => 
-        notification.userId === userId 
-          ? { ...notification, status: 'verified' }
-          : notification
-      )
-    );
-    
-    // In real app, update caregiver status in backend
-    console.log(`Caregiver ${userId} verified by admin`);
-  };
-
-  // Admin function to delete user
-  const deleteUser = (userId) => {
-    // In real app, this would make an API call to delete user
-    console.log(`User ${userId} deleted by admin`);
-  };
-
-  // Admin function to flag/unflag user
-  const flagUser = (userId, flagged) => {
-    // In real app, this would update user status in backend
-    console.log(`User ${userId} ${flagged ? 'flagged' : 'unflagged'} by admin`);
-  };
-
-  // Logout function
+  // =============================
+  // ✅ LOGOUT
+  // =============================
   const logout = () => {
     setUser(null);
     setRole(null);
@@ -352,14 +217,16 @@ export const AppContextProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
-  // Check for existing user on app load
+  // =============================
+  // Auto login if saved
+  // =============================
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         setUser(userData);
-        setRole(userData.role);
+        setRole(userData.frontendRole);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         localStorage.removeItem('user');
@@ -370,25 +237,18 @@ export const AppContextProvider = ({ children }) => {
 
   const value = {
     user,
-    setUser,
     role,
-    setRole,
     bookings,
-    setBookings,
     reviews,
-    setReviews,
     loading,
-    setLoading,
     adminNotifications,
     login,
     logout,
     register,
     updateUserProfile,
-    updateProfile,
-    verifyCaregiver,
-    deleteUser,
-    flagUser,
-    notifyAdmin
+    notifyAdmin,
+    setBookings,
+    setReviews
   };
 
   return (
